@@ -13,6 +13,15 @@ export function Navbar() {
               HR Manager
             </Button>
           </Link>
+          <Link href="/employees">
+            <Button variant="ghost">Employees</Button>
+          </Link>
+          <Link href="/evaluations">
+            <Button variant="ghost">Evaluations</Button>
+          </Link>
+          <Link href="/collaborations">
+            <Button variant="ghost">Collaborations</Button>
+          </Link>
         </div>
 
         <div className="ml-auto flex items-center space-x-4">
