@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { analyzeResume } from "./openai";
+import { analyzeResume, analyzeTeamCompatibility } from "./openai";
 import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, insertCollaborationSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { generateAndStoreInsights } from "./notifications";
@@ -163,6 +163,31 @@ export async function registerRoutes(app: Express) {
   app.get("/api/employees/:id/collaborations", async (req, res) => {
     const collaborations = await storage.getCollaborationsByEmployee(Number(req.params.id));
     res.json(collaborations);
+  });
+
+  // Team matching route
+  app.post("/api/teams/match", async (req, res) => {
+    try {
+      const { employees, projectRequirements } = req.body;
+
+      if (!Array.isArray(employees) || typeof projectRequirements !== "string") {
+        return res.status(400).json({ 
+          message: "Invalid request format" 
+        });
+      }
+
+      const teamSuggestions = await analyzeTeamCompatibility(
+        employees,
+        projectRequirements
+      );
+
+      res.json(teamSuggestions);
+    } catch (error) {
+      console.error("Team matching failed:", error);
+      res.status(500).json({ 
+        message: "Failed to analyze team compatibility" 
+      });
+    }
   });
 
   const httpServer = createServer(app);
