@@ -69,7 +69,13 @@ export const collaborations = pgTable("collaborations", {
 export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true });
 export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true });
 export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ id: true });
-export const insertResumeSchema = createInsertSchema(resumes).omit({ id: true, aiScore: true, aiFeedback: true });
+export const insertResumeSchema = createInsertSchema(resumes).omit({ 
+  id: true, 
+  aiScore: true, 
+  aiFeedback: true 
+}).extend({
+  submittedAt: z.coerce.date()
+});
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
   id: true,

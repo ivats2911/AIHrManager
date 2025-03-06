@@ -41,7 +41,7 @@ export function ResumeUpload() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          submittedAt: new Date(),
+          submittedAt: new Date().toISOString(), // Format date as ISO string
         }),
       });
 
