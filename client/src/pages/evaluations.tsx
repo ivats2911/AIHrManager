@@ -4,7 +4,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Evaluation, Employee } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -112,6 +112,9 @@ export default function Evaluations() {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Create Evaluation</DialogTitle>
+              <DialogDescription>
+                Add a new performance evaluation for an employee. Fill in all the required information below.
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form
