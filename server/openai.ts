@@ -8,7 +8,6 @@ export async function analyzeResume(resumeText: string, position: string): Promi
   feedback: {
     strengths: string[];
     weaknesses: string[];
-    skills: string[];
     recommendation: string;
   };
 }> {
@@ -19,7 +18,7 @@ export async function analyzeResume(resumeText: string, position: string): Promi
         {
           role: "system",
           content:
-            "You are an expert HR recruiter. Analyze the provided resume for the specified position and provide detailed feedback. Include a score from 1-100, key strengths, weaknesses, relevant skills, and a hiring recommendation.",
+            "You are an expert HR recruiter. Analyze the provided resume for the specified position and provide detailed feedback in JSON format with the following structure:\n{\n  'score': number (1-100),\n  'strengths': string[],\n  'weaknesses': string[],\n  'recommendation': string\n}",
         },
         {
           role: "user",
@@ -31,28 +30,36 @@ export async function analyzeResume(resumeText: string, position: string): Promi
 
     const content = response.choices[0].message.content;
     if (!content) {
+      console.error("No content received from OpenAI");
       throw new Error("No content received from OpenAI");
     }
 
-    const result = JSON.parse(content) as {
-      score: number;
-      strengths: string[];
-      weaknesses: string[];
-      skills: string[];
-      recommendation: string;
-    };
+    console.log("Raw OpenAI response:", content);
 
-    return {
-      score: Math.min(100, Math.max(1, result.score)),
-      feedback: {
-        strengths: result.strengths,
-        weaknesses: result.weaknesses,
-        skills: result.skills,
-        recommendation: result.recommendation,
-      },
-    };
+    try {
+      const result = JSON.parse(content);
+
+      // Validate the response structure
+      if (!result.score || !Array.isArray(result.strengths) || !Array.isArray(result.weaknesses) || !result.recommendation) {
+        console.error("Invalid response structure:", result);
+        throw new Error("Invalid response structure from AI");
+      }
+
+      return {
+        score: Math.min(100, Math.max(1, result.score)),
+        feedback: {
+          strengths: result.strengths,
+          weaknesses: result.weaknesses,
+          recommendation: result.recommendation,
+        },
+      };
+    } catch (parseError) {
+      console.error("Failed to parse OpenAI response:", parseError);
+      throw new Error("Failed to parse AI response");
+    }
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    console.error("Resume analysis failed:", errorMessage);
     throw new Error("Failed to analyze resume: " + errorMessage);
   }
 }

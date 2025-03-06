@@ -78,20 +78,43 @@ export async function registerRoutes(app: Express) {
   });
 
   app.post("/api/resumes", async (req, res) => {
-    const resume = insertResumeSchema.parse(req.body);
-    const created = await storage.createResume(resume);
-
     try {
-      const analysis = await analyzeResume(resume.resumeText, resume.position);
-      const updated = await storage.updateResumeAIAnalysis(
-        created.id,
-        analysis.score,
-        analysis.feedback
-      );
-      res.status(201).json(updated);
+      const resume = insertResumeSchema.parse(req.body);
+      const created = await storage.createResume(resume);
+      console.log("Resume created:", created);
+
+      try {
+        console.log("Starting AI analysis for resume:", created.id);
+        const analysis = await analyzeResume(resume.resumeText, resume.position);
+        console.log("AI analysis completed:", analysis);
+
+        const updated = await storage.updateResumeAIAnalysis(
+          created.id,
+          analysis.score,
+          analysis.feedback
+        );
+        console.log("Resume updated with analysis:", updated);
+        res.status(201).json(updated);
+      } catch (analysisError) {
+        console.error("AI analysis failed:", analysisError);
+        // Still return the created resume even if AI analysis fails
+        res.status(201).json({
+          ...created,
+          aiScore: null,
+          aiFeedback: {
+            error: "Analysis failed, please try again later",
+          },
+        });
+      }
     } catch (error) {
-      // Still return the created resume even if AI analysis fails
-      res.status(201).json(created);
+      console.error("Resume creation failed:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: "Failed to process resume" });
     }
   });
 
