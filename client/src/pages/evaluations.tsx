@@ -14,12 +14,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertEvaluationSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Evaluations() {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: evaluations, isLoading: evaluationsLoading } = useQuery<Evaluation[]>({
+  const { data: evaluations, isLoading } = useQuery<Evaluation[]>({
     queryKey: ["/api/evaluations"],
   });
 
@@ -66,19 +67,49 @@ export default function Evaluations() {
     },
   });
 
-  if (evaluationsLoading) {
-    return <div>Loading...</div>;
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">Performance Evaluations</h1>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          {[1, 2].map((i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-3/4" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-20 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Performance Evaluations</h1>
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            Performance Evaluations
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Track employee performance and set goals
+          </p>
+        </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>New Evaluation</Button>
+            <Button className="relative overflow-hidden transition-all hover:shadow-xl">
+              <span className="relative z-10">New Evaluation</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 transform scale-x-0 transition-transform origin-left hover:scale-x-100" />
+            </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Create Evaluation</DialogTitle>
             </DialogHeader>
@@ -133,7 +164,7 @@ export default function Evaluations() {
                     <FormItem>
                       <FormLabel>Date</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input type="date" {...field} className="bg-background" />
                       </FormControl>
                     </FormItem>
                   )}
@@ -150,6 +181,7 @@ export default function Evaluations() {
                           type="number"
                           min="1"
                           max="5"
+                          className="bg-background"
                           {...field}
                           onChange={(e) =>
                             field.onChange(Number(e.target.value))
@@ -167,13 +199,15 @@ export default function Evaluations() {
                     <FormItem>
                       <FormLabel>Feedback</FormLabel>
                       <FormControl>
-                        <Textarea {...field} />
+                        <Textarea {...field} className="bg-background resize-none" />
                       </FormControl>
                     </FormItem>
                   )}
                 />
 
-                <Button type="submit">Submit Evaluation</Button>
+                <Button type="submit" className="w-full transition-all hover:shadow-lg">
+                  Submit Evaluation
+                </Button>
               </form>
             </Form>
           </DialogContent>
@@ -184,32 +218,33 @@ export default function Evaluations() {
         {evaluations?.map((evaluation) => {
           const employee = employees?.find((e) => e.id === evaluation.employeeId);
           return (
-            <Card key={evaluation.id}>
+            <Card key={evaluation.id} className="group transition-all duration-300 hover:shadow-lg border-2 hover:border-primary/20">
               <CardHeader>
-                <CardTitle>
-                  {employee
-                    ? `${employee.firstName} ${employee.lastName}`
-                    : "Employee"}
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    {format(new Date(evaluation.evaluationDate), "PPP")}
-                  </span>
+                <CardTitle className="flex items-center justify-between">
+                  <div>
+                    {employee
+                      ? `${employee.firstName} ${employee.lastName}`
+                      : "Employee"}
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      {format(new Date(evaluation.evaluationDate), "PPP")}
+                    </span>
+                  </div>
+                  <div className="text-2xl font-bold text-primary">
+                    {evaluation.performance}/5
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
+                <div className="space-y-4 transition-all duration-300 group-hover:translate-x-1">
                   <div>
-                    <span className="font-medium">Performance Rating: </span>
-                    {evaluation.performance}/5
+                    <span className="font-medium text-primary">Feedback:</span>
+                    <p className="mt-1 text-sm leading-relaxed">{evaluation.feedback}</p>
                   </div>
                   <div>
-                    <span className="font-medium">Feedback:</span>
-                    <p className="mt-1 text-sm">{evaluation.feedback}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium">Goals:</span>
-                    <ul className="mt-1 list-disc pl-4 text-sm">
+                    <span className="font-medium text-primary">Goals:</span>
+                    <ul className="mt-1 list-disc pl-4 text-sm space-y-1">
                       {evaluation.goals.map((goal, index) => (
-                        <li key={index}>{goal}</li>
+                        <li key={index} className="text-muted-foreground">{goal}</li>
                       ))}
                     </ul>
                   </div>

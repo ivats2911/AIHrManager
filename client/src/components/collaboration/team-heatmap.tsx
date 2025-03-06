@@ -8,6 +8,8 @@ import {
   YAxis,
   ScatterChart,
 } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CollaborationCell {
   x: number;
@@ -18,19 +20,34 @@ interface CollaborationCell {
 }
 
 export function TeamHeatmap() {
-  const { data: employees = [] } = useQuery<Employee[]>({
+  const { data: employees = [], isLoading: employeesLoading } = useQuery<Employee[]>({
     queryKey: ["/api/employees"],
   });
 
-  const { data: collaborations = [] } = useQuery<Collaboration[]>({
+  const { data: collaborations = [], isLoading: collaborationsLoading } = useQuery<Collaboration[]>({
     queryKey: ["/api/collaborations"],
   });
 
+  if (employeesLoading || collaborationsLoading) {
+    return (
+      <Card className="w-full h-[600px] border-2 border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold">
+            <Skeleton className="h-8 w-64" />
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[500px] w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Process data for the heatmap
-  const heatmapData = employees.map((employee, i) => 
+  const heatmapData = employees.map((employee, i) =>
     employees.map((collaborator, j) => {
       const intensity = collaborations
-        .filter(c => 
+        .filter(c =>
           (c.employeeId === employee.id && c.collaboratorId === collaborator.id) ||
           (c.employeeId === collaborator.id && c.collaboratorId === employee.id)
         )
@@ -60,74 +77,83 @@ export function TeamHeatmap() {
         width={width}
         height={height}
         fill={color}
+        className="transition-all duration-300 hover:opacity-80 hover:stroke-primary hover:stroke-2"
         style={{ opacity: 0.8 }}
       />
     );
   };
 
   return (
-    <div className="w-full h-[600px]">
-      <h2 className="text-xl font-semibold mb-4">Team Collaboration Heatmap</h2>
-      <ResponsiveContainer width="100%" height="100%">
-        <ScatterChart
-          margin={{ top: 60, right: 30, bottom: 30, left: 60 }}
-        >
-          <XAxis
-            type="number"
-            dataKey="x"
-            domain={[0, employees.length - 1]}
-            tickFormatter={(index) => 
-              employees[index] ? 
-              `${employees[index].firstName} ${employees[index].lastName}` : 
-              ''
-            }
-            angle={-45}
-            textAnchor="end"
-            height={70}
-            interval={0}
-          />
-          <YAxis
-            type="number"
-            dataKey="y"
-            domain={[0, employees.length - 1]}
-            tickFormatter={(index) => 
-              employees[index] ? 
-              `${employees[index].firstName} ${employees[index].lastName}` : 
-              ''
-            }
-            width={120}
-            interval={0}
-          />
-          <Tooltip
-            content={({ active, payload }) => {
-              if (active && payload && payload.length) {
-                const data = payload[0].payload as CollaborationCell;
-                return (
-                  <div className="bg-background border rounded-lg shadow-lg p-2">
-                    <p className="text-sm font-medium">
-                      {data.employeeName} ↔ {data.collaboratorName}
-                    </p>
-                    <p className="text-sm">
-                      Collaboration Intensity: {data.value}
-                    </p>
-                  </div>
-                );
+    <Card className="w-full h-[600px] border-2 border-primary/20 transition-all duration-300 hover:shadow-lg">
+      <CardHeader>
+        <CardTitle className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          Team Collaboration Heatmap
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height="100%">
+          <ScatterChart
+            margin={{ top: 60, right: 30, bottom: 30, left: 60 }}
+          >
+            <XAxis
+              type="number"
+              dataKey="x"
+              domain={[0, employees.length - 1]}
+              tickFormatter={(index) =>
+                employees[index] ?
+                  `${employees[index].firstName} ${employees[index].lastName}` :
+                  ''
               }
-              return null;
-            }}
-          />
-          {heatmapData.map((cell, index) => (
-            <CustomHeatmapCell
-              key={index}
-              x={cell.x}
-              y={cell.y}
-              value={cell.value}
-              width={1}
-              height={1}
+              angle={-45}
+              textAnchor="end"
+              height={70}
+              interval={0}
+              tick={{ fill: 'var(--primary)', fontSize: 12 }}
             />
-          ))}
-        </ScatterChart>
-      </ResponsiveContainer>
-    </div>
+            <YAxis
+              type="number"
+              dataKey="y"
+              domain={[0, employees.length - 1]}
+              tickFormatter={(index) =>
+                employees[index] ?
+                  `${employees[index].firstName} ${employees[index].lastName}` :
+                  ''
+              }
+              width={120}
+              interval={0}
+              tick={{ fill: 'var(--primary)', fontSize: 12 }}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const data = payload[0].payload as CollaborationCell;
+                  return (
+                    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-2 border-primary/20 rounded-lg shadow-lg p-3 transition-all duration-300">
+                      <p className="text-sm font-semibold text-primary">
+                        {data.employeeName} ↔ {data.collaboratorName}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Collaboration Intensity: {data.value}
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            {heatmapData.map((cell, index) => (
+              <CustomHeatmapCell
+                key={index}
+                x={cell.x}
+                y={cell.y}
+                value={cell.value}
+                width={1}
+                height={1}
+              />
+            ))}
+          </ScatterChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   );
 }
