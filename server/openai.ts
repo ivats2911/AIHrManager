@@ -12,17 +12,18 @@ export async function analyzeResume(resumeText: string, position: string): Promi
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",  // Changed from gpt-4o to gpt-4
+      model: "gpt-4",
       messages: [
         {
           role: "system",
-          content: `You are an expert HR recruiter. Analyze the provided resume for the specified position and provide feedback in the following JSON format:
+          content: `You are an expert HR recruiter. Analyze the provided resume for the specified position and provide a JSON response with exactly this format:
 {
   "score": <number between 1-100>,
-  "strengths": [<array of key strengths found in the resume>],
-  "weaknesses": [<array of areas for improvement>],
-  "recommendation": "<hiring recommendation based on the analysis>"
-}`
+  "strengths": ["strength1", "strength2", ...],
+  "weaknesses": ["weakness1", "weakness2", ...],
+  "recommendation": "your hiring recommendation"
+}
+Do not include any other text before or after the JSON.`
         },
         {
           role: "user",
@@ -30,7 +31,6 @@ export async function analyzeResume(resumeText: string, position: string): Promi
         },
       ],
       temperature: 0.7,
-      response_format: { type: "json_object" }
     });
 
     const content = response.choices[0].message.content;
