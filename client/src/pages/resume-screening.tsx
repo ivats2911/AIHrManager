@@ -6,6 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 
+interface AIFeedback {
+  strengths: string[];
+  weaknesses: string[];
+  recommendation: string;
+}
+
 export default function ResumeScreening() {
   const { data: resumes, isLoading } = useQuery<Resume[]>({
     queryKey: ["/api/resumes"],
@@ -51,7 +57,7 @@ export default function ResumeScreening() {
                       <div>
                         <h4 className="font-medium mb-2">Key Strengths</h4>
                         <ul className="list-disc pl-4 text-sm">
-                          {resume.aiFeedback.strengths.map((strength, i) => (
+                          {(resume.aiFeedback as AIFeedback).strengths.map((strength, i) => (
                             <li key={i}>{strength}</li>
                           ))}
                         </ul>
@@ -59,14 +65,14 @@ export default function ResumeScreening() {
                       <div>
                         <h4 className="font-medium mb-2">Areas for Improvement</h4>
                         <ul className="list-disc pl-4 text-sm">
-                          {resume.aiFeedback.weaknesses.map((weakness, i) => (
+                          {(resume.aiFeedback as AIFeedback).weaknesses.map((weakness, i) => (
                             <li key={i}>{weakness}</li>
                           ))}
                         </ul>
                       </div>
                       <div>
                         <h4 className="font-medium mb-2">Recommendation</h4>
-                        <p className="text-sm">{resume.aiFeedback.recommendation}</p>
+                        <p className="text-sm">{(resume.aiFeedback as AIFeedback).recommendation}</p>
                       </div>
                     </div>
                   )}

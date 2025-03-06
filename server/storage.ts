@@ -7,6 +7,8 @@ import {
   type InsertEvaluation,
   type Resume,
   type InsertResume,
+  type Notification,
+  type InsertNotification,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -32,6 +34,13 @@ export interface IStorage {
   getResume(id: number): Promise<Resume | undefined>;
   createResume(resume: InsertResume): Promise<Resume>;
   updateResumeAIAnalysis(id: number, score: number, feedback: any): Promise<Resume>;
+
+  // Notification operations
+  getNotifications(): Promise<Notification[]>;
+  getUnreadNotifications(): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<Notification>;
+  deleteNotification(id: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -39,11 +48,13 @@ export class MemStorage implements IStorage {
   private leaves: Map<number, Leave> = new Map();
   private evaluations: Map<number, Evaluation> = new Map();
   private resumes: Map<number, Resume> = new Map();
+  private notifications: Map<number, Notification> = new Map();
   private currentIds = {
     employees: 1,
     leaves: 1,
     evaluations: 1,
     resumes: 1,
+    notifications: 1,
   };
 
   // Employee operations
@@ -156,6 +167,48 @@ export class MemStorage implements IStorage {
     const updated = { ...resume, aiScore: score, aiFeedback: feedback };
     this.resumes.set(id, updated);
     return updated;
+  }
+
+  // Notification operations
+  async getNotifications(): Promise<Notification[]> {
+    return Array.from(this.notifications.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getUnreadNotifications(): Promise<Notification[]> {
+    return Array.from(this.notifications.values())
+      .filter((notification) => !notification.isRead)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const id = this.currentIds.notifications++;
+    const newNotification: Notification = {
+      ...notification,
+      id,
+      isRead: false,
+      createdAt: new Date(),
+      metadata: notification.metadata || {},
+    };
+    this.notifications.set(id, newNotification);
+    return newNotification;
+  }
+
+  async markNotificationAsRead(id: number): Promise<Notification> {
+    const notification = this.notifications.get(id);
+    if (!notification) {
+      throw new Error("Notification not found");
+    }
+    const updated = { ...notification, isRead: true };
+    this.notifications.set(id, updated);
+    return updated;
+  }
+
+  async deleteNotification(id: number): Promise<void> {
+    if (!this.notifications.has(id)) {
+      throw new Error("Notification not found");
+    }
+    this.notifications.delete(id);
   }
 }
 

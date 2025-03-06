@@ -32,7 +32,7 @@ export function EmployeeStats() {
   }, {} as Record<string, number>);
 
   const statusData = Object.entries(statusStats).map(([name, value]) => ({
-    name,
+    name: name.charAt(0).toUpperCase() + name.slice(1),
     value,
   }));
 
@@ -77,11 +77,12 @@ export function EmployeeStats() {
             <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
+                  const data = payload[0];
                   return (
                     <div className="bg-background border rounded-lg shadow-lg p-2">
-                      <p className="text-sm font-medium">{payload[0].name}</p>
+                      <p className="text-sm font-medium">{String(data.name)}</p>
                       <p className="text-sm">
-                        Employees: {payload[0].value}
+                        Employees: {data.value}
                       </p>
                     </div>
                   );
@@ -112,21 +113,19 @@ export function EmployeeStats() {
               {statusData.map((entry) => (
                 <Cell
                   key={`cell-${entry.name}`}
-                  fill={STATUS_COLORS[entry.name as keyof typeof STATUS_COLORS] || DEPARTMENT_COLORS[0]}
+                  fill={STATUS_COLORS[entry.name.toLowerCase() as keyof typeof STATUS_COLORS] || DEPARTMENT_COLORS[0]}
                 />
               ))}
             </Pie>
             <Tooltip
               content={({ active, payload }) => {
                 if (active && payload && payload.length) {
+                  const data = payload[0];
                   return (
                     <div className="bg-background border rounded-lg shadow-lg p-2">
-                      <p className="text-sm font-medium">
-                        {payload[0].name.charAt(0).toUpperCase() + 
-                         payload[0].name.slice(1)}
-                      </p>
+                      <p className="text-sm font-medium">{String(data.name)}</p>
                       <p className="text-sm">
-                        Employees: {payload[0].value}
+                        Employees: {data.value}
                       </p>
                     </div>
                   );

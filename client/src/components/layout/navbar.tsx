@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 
 export function Navbar() {
   return (
@@ -15,6 +16,7 @@ export function Navbar() {
         </div>
 
         <div className="ml-auto flex items-center space-x-4">
+          <NotificationCenter />
           <Avatar>
             <AvatarImage src="https://images.unsplash.com/photo-1507679799987-c73779587ccf" />
             <AvatarFallback>HR</AvatarFallback>

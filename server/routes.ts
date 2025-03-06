@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { analyzeResume } from "./openai";
 import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema } from "@shared/schema";
 import { ZodError } from "zod";
+import { generateAndStoreInsights } from "./notifications";
 
 export async function registerRoutes(app: Express) {
   // Error handling middleware
@@ -79,7 +80,7 @@ export async function registerRoutes(app: Express) {
   app.post("/api/resumes", async (req, res) => {
     const resume = insertResumeSchema.parse(req.body);
     const created = await storage.createResume(resume);
-    
+
     try {
       const analysis = await analyzeResume(resume.resumeText, resume.position);
       const updated = await storage.updateResumeAIAnalysis(
@@ -91,6 +92,36 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       // Still return the created resume even if AI analysis fails
       res.status(201).json(created);
+    }
+  });
+
+  // Notification routes
+  app.get("/api/notifications", async (req, res) => {
+    const notifications = await storage.getNotifications();
+    res.json(notifications);
+  });
+
+  app.get("/api/notifications/unread", async (req, res) => {
+    const notifications = await storage.getUnreadNotifications();
+    res.json(notifications);
+  });
+
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    const notification = await storage.markNotificationAsRead(Number(req.params.id));
+    res.json(notification);
+  });
+
+  app.delete("/api/notifications/:id", async (req, res) => {
+    await storage.deleteNotification(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  app.post("/api/notifications/generate-insights", async (req, res) => {
+    try {
+      await generateAndStoreInsights();
+      res.status(201).json({ message: "Insights generated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to generate insights" });
     }
   });
 

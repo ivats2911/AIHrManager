@@ -29,4 +29,11 @@ export const api = {
     list: () => apiRequest("GET", "/api/resumes"),
     create: (data: InsertResume) => apiRequest("POST", "/api/resumes", data),
   },
+  notifications: {
+    list: () => apiRequest("GET", "/api/notifications"),
+    unread: () => apiRequest("GET", "/api/notifications/unread"),
+    markAsRead: (id: number) => apiRequest("PATCH", `/api/notifications/${id}/read`),
+    delete: (id: number) => apiRequest("DELETE", `/api/notifications/${id}`),
+    generateInsights: () => apiRequest("POST", "/api/notifications/generate-insights"),
+  },
 };

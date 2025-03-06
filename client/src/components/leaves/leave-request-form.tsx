@@ -59,7 +59,7 @@ export function LeaveRequestForm({ onSubmit, employees }: LeaveRequestFormProps)
               <FormLabel>Employee</FormLabel>
               <Select
                 onValueChange={(value) => field.onChange(Number(value))}
-                defaultValue={field.value?.toString()}
+                value={field.value ? String(field.value) : undefined}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -70,7 +70,7 @@ export function LeaveRequestForm({ onSubmit, employees }: LeaveRequestFormProps)
                   {employees.map((employee) => (
                     <SelectItem
                       key={employee.id}
-                      value={employee.id.toString()}
+                      value={String(employee.id)}
                     >
                       {employee.firstName} {employee.lastName}
                     </SelectItem>
