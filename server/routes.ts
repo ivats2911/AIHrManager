@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { analyzeResume } from "./openai";
-import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema } from "@shared/schema";
+import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, insertCollaborationSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { generateAndStoreInsights } from "./notifications";
 
@@ -123,6 +123,23 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       res.status(500).json({ message: "Failed to generate insights" });
     }
+  });
+
+  // Collaboration routes
+  app.get("/api/collaborations", async (req, res) => {
+    const collaborations = await storage.getCollaborations();
+    res.json(collaborations);
+  });
+
+  app.post("/api/collaborations", async (req, res) => {
+    const collaboration = insertCollaborationSchema.parse(req.body);
+    const created = await storage.createCollaboration(collaboration);
+    res.status(201).json(created);
+  });
+
+  app.get("/api/employees/:id/collaborations", async (req, res) => {
+    const collaborations = await storage.getCollaborationsByEmployee(Number(req.params.id));
+    res.json(collaborations);
   });
 
   const httpServer = createServer(app);

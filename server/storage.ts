@@ -9,6 +9,8 @@ import {
   type InsertResume,
   type Notification,
   type InsertNotification,
+  type Collaboration,
+  type InsertCollaboration,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -41,6 +43,11 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<Notification>;
   deleteNotification(id: number): Promise<void>;
+
+  // Collaboration operations
+  getCollaborations(): Promise<Collaboration[]>;
+  createCollaboration(collaboration: InsertCollaboration): Promise<Collaboration>;
+  getCollaborationsByEmployee(employeeId: number): Promise<Collaboration[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -49,12 +56,14 @@ export class MemStorage implements IStorage {
   private evaluations: Map<number, Evaluation> = new Map();
   private resumes: Map<number, Resume> = new Map();
   private notifications: Map<number, Notification> = new Map();
+  private collaborations: Map<number, Collaboration> = new Map();
   private currentIds = {
     employees: 1,
     leaves: 1,
     evaluations: 1,
     resumes: 1,
     notifications: 1,
+    collaborations: 1,
   };
 
   // Employee operations
@@ -209,6 +218,27 @@ export class MemStorage implements IStorage {
       throw new Error("Notification not found");
     }
     this.notifications.delete(id);
+  }
+
+  // Collaboration operations
+  async getCollaborations(): Promise<Collaboration[]> {
+    return Array.from(this.collaborations.values());
+  }
+
+  async createCollaboration(collaboration: InsertCollaboration): Promise<Collaboration> {
+    const id = this.currentIds.collaborations++;
+    const newCollaboration: Collaboration = {
+      ...collaboration,
+      id,
+    };
+    this.collaborations.set(id, newCollaboration);
+    return newCollaboration;
+  }
+
+  async getCollaborationsByEmployee(employeeId: number): Promise<Collaboration[]> {
+    return Array.from(this.collaborations.values()).filter(
+      (c) => c.employeeId === employeeId || c.collaboratorId === employeeId
+    );
   }
 }
 
