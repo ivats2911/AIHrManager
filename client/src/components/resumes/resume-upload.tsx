@@ -28,31 +28,51 @@ export function ResumeUpload() {
       candidateName: "",
       position: "",
       resumeText: "",
+      submittedAt: new Date(),
     },
   });
 
   async function onSubmit(data: any) {
     setIsUploading(true);
     try {
+      console.log("Submitting resume data:", data);
       const res = await fetch("/api/resumes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          submittedAt: new Date(),
+        }),
       });
-      
-      if (!res.ok) throw new Error("Failed to upload resume");
-      
-      queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
-      form.reset();
-      toast({
-        title: "Success",
-        description: "Resume uploaded and analyzed successfully",
-      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to upload resume");
+      }
+
+      const result = await res.json();
+      console.log("Resume upload response:", result);
+
+      if (result.aiScore === null || result.aiFeedback?.error) {
+        toast({
+          variant: "destructive",
+          title: "Analysis Failed",
+          description: "The AI analysis could not be completed. Please try again later.",
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
+        form.reset();
+        toast({
+          title: "Success",
+          description: "Resume uploaded and analyzed successfully",
+        });
+      }
     } catch (error) {
+      console.error("Resume upload error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to upload resume",
+        description: error instanceof Error ? error.message : "Failed to upload resume",
       });
     } finally {
       setIsUploading(false);
