@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, Upload } from "lucide-react";
 
 export function ResumeUpload() {
   const [isUploading, setIsUploading] = useState(false);
@@ -41,7 +42,7 @@ export function ResumeUpload() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          submittedAt: new Date().toISOString(), // Format date as ISO string
+          submittedAt: new Date().toISOString(),
         }),
       });
 
@@ -80,40 +81,45 @@ export function ResumeUpload() {
   }
 
   return (
-    <Card>
+    <Card className="border-2 border-primary/20">
       <CardHeader>
-        <CardTitle>Upload Resume</CardTitle>
+        <CardTitle className="text-2xl">Upload Resume</CardTitle>
+        <CardDescription>
+          Upload a resume for AI-powered analysis and scoring
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="candidateName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Candidate Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="candidateName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Candidate Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="John Doe" className="bg-background" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="position"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Position Applied For</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Position Applied For</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Software Engineer" className="bg-background" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -126,6 +132,7 @@ export function ResumeUpload() {
                       {...field}
                       rows={10}
                       placeholder="Paste the resume content here..."
+                      className="bg-background resize-none"
                     />
                   </FormControl>
                   <FormMessage />
@@ -133,8 +140,22 @@ export function ResumeUpload() {
               )}
             />
 
-            <Button type="submit" disabled={isUploading}>
-              {isUploading ? "Analyzing..." : "Upload & Analyze"}
+            <Button 
+              type="submit" 
+              disabled={isUploading}
+              className="w-full md:w-auto"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload & Analyze
+                </>
+              )}
             </Button>
           </form>
         </Form>
