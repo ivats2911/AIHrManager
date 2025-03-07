@@ -50,13 +50,23 @@ export function BulkOnboarding() {
   const { mutate: uploadEmployees, isPending } = useMutation({
     mutationFn: async (data: { employeesData: string }) => {
       try {
-        // Parse CSV/JSON data
+        // Parse CSV data
         const employeesList = data.employeesData
           .trim()
           .split("\n")
           .map((line) => {
-            const [firstName, lastName, email, role, department, ...skills] = line.split(",").map(s => s.trim());
-            return { firstName, lastName, email, role, department, skills };
+            const [firstName, lastName, email, role, department, joinDate, ...skills] = line.split(",").map(s => s.trim());
+            return { 
+              firstName, 
+              lastName, 
+              email, 
+              role, 
+              department, 
+              joinDate,
+              status: "active",
+              skills,
+              profileImage: null 
+            };
           });
 
         setProgress({ total: employeesList.length, current: 0, success: 0, failed: 0 });
@@ -114,7 +124,7 @@ export function BulkOnboarding() {
         <CardTitle className="text-2xl">Bulk Employee Onboarding</CardTitle>
         <CardDescription>
           Upload multiple employees using CSV format. Each line should contain:
-          firstName, lastName, email, role, department, skill1, skill2, ...
+          firstName, lastName, email, role, department, joinDate, skill1, skill2, ...
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -132,7 +142,7 @@ export function BulkOnboarding() {
                     <Textarea
                       {...field}
                       rows={10}
-                      placeholder="John,Doe,john@example.com,Developer,Engineering,JavaScript,React,Node.js"
+                      placeholder="John,Doe,john@example.com,Developer,Engineering,2024-03-07,JavaScript,React,Node.js"
                       className="font-mono text-sm bg-background resize-none"
                     />
                   </FormControl>

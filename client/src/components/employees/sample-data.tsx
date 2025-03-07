@@ -31,21 +31,26 @@ function getRandomSkills(department: string, count: number = 3): string[] {
 
 function generateSampleData(count: number = 10): string {
   const lines: string[] = [];
-  
+
   for (let i = 0; i < count; i++) {
     const department = departments[Math.floor(Math.random() * departments.length)];
     const role = roles[department as keyof typeof roles][
       Math.floor(Math.random() * roles[department as keyof typeof roles].length)
     ];
     const randomSkills = getRandomSkills(department);
-    
+
     const firstName = `Employee${i + 1}`;
     const lastName = `Test`;
     const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@company.com`;
-    
-    lines.push(`${firstName},${lastName},${email},${role},${department},${randomSkills.join(",")}`);
+
+    // Get current date
+    const today = new Date();
+    // Generate a random join date within the last year
+    const joinDate = new Date(today.getTime() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    lines.push(`${firstName},${lastName},${email},${role},${department},${joinDate},${randomSkills.join(",")}`);
   }
-  
+
   return lines.join("\n");
 }
 
@@ -70,7 +75,7 @@ export function SampleDataGenerator() {
         Copy Sample Data
       </Button>
       <p className="text-sm text-muted-foreground mt-2">
-        Click to copy sample data in CSV format for testing the bulk upload feature
+        Click to copy sample data in CSV format: firstName, lastName, email, role, department, joinDate, skills
       </p>
     </div>
   );
