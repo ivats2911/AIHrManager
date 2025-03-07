@@ -1,78 +1,32 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { analyzeResume, analyzeTeamCompatibility, analyzePerformanceData } from "./openai";
-import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, loginSchema, insertJobListingSchema } from "@shared/schema";
+import { analyzeResume, analyzeTeamCompatibility, analyzePerformanceData, analyzeResumeEnhanced } from "./openai"; // Assumed analyzeResumeEnhanced exists
+import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, insertCollaborationSchema, insertJobListingSchema } from "@shared/schema"; // Assumed insertJobListingSchema exists
 import { ZodError } from "zod";
 import { generateAndStoreInsights } from "./notifications";
-import bcrypt from "bcryptjs";
 
 export async function registerRoutes(app: Express) {
-  // Authentication routes
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const credentials = loginSchema.parse(req.body);
+  // Error handling middleware for validation errors
+  app.use((err: Error, req: any, res: any, next: any) => {
+    console.error("Request error:", err);
 
-      // Find user by email
-      const user = await storage.getUserByEmail(credentials.email);
-
-      if (!user) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      // Verify password
-      const validPassword = await bcrypt.compare(credentials.password, user.password);
-
-      if (!validPassword) {
-        return res.status(401).json({ message: "Invalid email or password" });
-      }
-
-      // Set session
-      if (req.session) {
-        req.session.userId = user.id;
-        req.session.isAuthenticated = true;
-      }
-
-      // Return user info (excluding password)
-      const { password, ...userInfo } = user;
-      res.json(userInfo);
-
-    } catch (error) {
-      if (error instanceof ZodError) {
-        return res.status(400).json({
-          message: "Validation error",
-          errors: error.errors
-        });
-      }
-      console.error("Login error:", error);
-      res.status(500).json({ message: "An error occurred during login" });
-    }
-  });
-
-  app.post("/api/auth/logout", (req, res) => {
-    if (req.session) {
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Logout error:", err);
-          return res.status(500).json({ message: "Failed to logout" });
-        }
-        res.json({ message: "Logged out successfully" });
+    if (err instanceof ZodError) {
+      return res.status(400).json({
+        message: "Validation error",
+        errors: err.errors
       });
-    } else {
-      res.json({ message: "Logged out successfully" });
     }
+
+    if (err.name === 'OpenAIError') {
+      return res.status(503).json({
+        message: "AI processing service temporarily unavailable",
+        retry: true
+      });
+    }
+
+    next(err);
   });
-
-  // Authentication middleware for protected routes
-  const authenticateUser = (req: any, res: any, next: any) => {
-    if (!req.session?.isAuthenticated) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    next();
-  };
-
-  // Apply authentication middleware to all API routes except auth routes
-  app.use("/api(?!/auth)/*", authenticateUser);
 
   // Employee routes
   app.get("/api/employees", async (req, res) => {
@@ -241,7 +195,7 @@ export async function registerRoutes(app: Express) {
       `;
 
       console.log("Starting AI analysis for resume with job matching");
-      const analysis = await analyzeResume(resumeText, jobDescription); // analyzeResume instead of analyzeResumeEnhanced
+      const analysis = await analyzeResumeEnhanced(resumeText, jobDescription);
       console.log("AI analysis completed");
 
       res.json({
@@ -281,7 +235,7 @@ export async function registerRoutes(app: Express) {
         }
 
         console.log("Starting AI analysis for resume:", created.id);
-        const analysis = await analyzeResume(resume.resumeText, jobDescription); // analyzeResume instead of analyzeResumeEnhanced
+        const analysis = await analyzeResumeEnhanced(resume.resumeText, jobDescription);
         console.log("AI analysis completed for resume:", created.id);
 
         const updated = await storage.updateResumeAIAnalysis(

@@ -11,14 +11,12 @@ import {
   type InsertNotification,
   type JobListing,
   type InsertJobListing,
-  type User,
   employees,
   leaves,
   evaluations,
   resumes,
   notifications,
   jobListings,
-  users,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -67,9 +65,6 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<Notification>;
   deleteNotification(id: number): Promise<void>;
-
-  // User operations
-  getUserByEmail(email: string): Promise<User | undefined>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -249,12 +244,6 @@ export class PostgresStorage implements IStorage {
 
   async deleteNotification(id: number): Promise<void> {
     await db.delete(notifications).where(eq(notifications.id, id));
-  }
-
-  // User operations
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const results = await db.select().from(users).where(eq(users.email, email));
-    return results[0];
   }
 }
 
