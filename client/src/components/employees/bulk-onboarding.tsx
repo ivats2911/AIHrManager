@@ -50,64 +50,58 @@ export function BulkOnboarding() {
   const { mutate: uploadEmployees, isPending } = useMutation({
     mutationFn: async (data: { employeesData: string }) => {
       try {
-        // Parse CSV data
+        // Parse CSV data into employee objects
         const employeesList = data.employeesData
           .trim()
           .split("\n")
           .map((line) => {
-            const [firstName, lastName, email, role, department, joinDate, ...skills] = line.split(",").map(s => s.trim());
+            const [firstName, lastName, email, position, department, joinDate, ...skills] = line.split(",").map(s => s.trim());
             return { 
               firstName, 
               lastName, 
               email, 
-              role, 
+              position, 
               department, 
               joinDate,
               status: "active",
-              skills,
               profileImage: null 
             };
           });
 
-        setProgress({ total: employeesList.length, current: 0, success: 0, failed: 0 });
+        // Send bulk request to the server
+        const response = await fetch("/api/employees/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(employeesList),
+        });
 
-        // Process each employee
-        for (const employee of employeesList) {
-          try {
-            const res = await fetch("/api/employees", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(employee),
-            });
-
-            if (!res.ok) throw new Error(`Failed to create employee: ${employee.email}`);
-
-            setProgress(prev => ({
-              ...prev,
-              current: prev.current + 1,
-              success: prev.success + 1,
-            }));
-          } catch (error) {
-            setProgress(prev => ({
-              ...prev,
-              current: prev.current + 1,
-              failed: prev.failed + 1,
-            }));
-          }
+        if (!response.ok) {
+          throw new Error(`Failed to process bulk upload: ${response.statusText}`);
         }
 
-        return employeesList;
+        const result = await response.json();
+        return result;
       } catch (error) {
         throw new Error("Failed to process employee data");
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
       toast({
-        title: "Success",
-        description: `Successfully onboarded ${progress.success} employees. ${progress.failed} failed.`,
+        title: "Upload Complete",
+        description: `Successfully onboarded ${data.successful} employees. ${data.failed} failed.`,
       });
       form.reset();
+
+      // Show detailed errors if any
+      if (data.errors?.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Some employees failed to upload",
+          description: `${data.errors.length} errors occurred. Check the console for details.`,
+        });
+        console.error("Upload errors:", data.errors);
+      }
     },
     onError: (error) => {
       toast({
@@ -124,7 +118,7 @@ export function BulkOnboarding() {
         <CardTitle className="text-2xl">Bulk Employee Onboarding</CardTitle>
         <CardDescription>
           Upload multiple employees using CSV format. Each line should contain:
-          firstName, lastName, email, role, department, joinDate, skill1, skill2, ...
+          firstName, lastName, email, position, department, joinDate, skill1, skill2, ...
         </CardDescription>
       </CardHeader>
       <CardContent>

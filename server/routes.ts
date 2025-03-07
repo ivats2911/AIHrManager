@@ -56,6 +56,52 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.post("/api/employees/bulk", async (req, res) => {
+    try {
+      const employees = req.body;
+      if (!Array.isArray(employees)) {
+        return res.status(400).json({ 
+          message: "Invalid request format - expecting an array of employees" 
+        });
+      }
+
+      const results = {
+        total: employees.length,
+        successful: 0,
+        failed: 0,
+        errors: [] as { row: number; error: string }[]
+      };
+
+      for (let i = 0; i < employees.length; i++) {
+        try {
+          const employeeData = {
+            ...employees[i],
+            joinDate: new Date(employees[i].joinDate),
+            status: "active"
+          };
+
+          const validatedEmployee = insertEmployeeSchema.parse(employeeData);
+          await storage.createEmployee(validatedEmployee);
+          results.successful++;
+        } catch (error) {
+          results.failed++;
+          results.errors.push({
+            row: i + 1,
+            error: error instanceof Error ? error.message : "Unknown error"
+          });
+        }
+      }
+
+      res.json(results);
+    } catch (error) {
+      console.error("Bulk upload failed:", error);
+      res.status(500).json({ 
+        message: "Failed to process bulk upload",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Performance Analysis Route
   app.get("/api/employees/:id/performance-insights", async (req, res) => {
     try {
