@@ -6,12 +6,14 @@ import {
   CalendarRange,
   LineChart,
   LayoutDashboard,
+  Briefcase,
 } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Employees", href: "/employees", icon: Users },
   { name: "Resume Screening", href: "/resume-screening", icon: FileText },
+  { name: "Job Board", href: "/job-board", icon: Briefcase },
   { name: "Leave Management", href: "/leaves", icon: CalendarRange },
   { name: "Evaluations", href: "/evaluations", icon: LineChart },
 ];

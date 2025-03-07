@@ -12,6 +12,7 @@ import Employees from "@/pages/employees";
 import ResumeScreening from "@/pages/resume-screening";
 import Leaves from "@/pages/leaves";
 import Evaluations from "@/pages/evaluations";
+import JobBoard from "@/pages/job-board";
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -38,6 +39,7 @@ function Router() {
         <Route path="/resume-screening" component={ResumeScreening} />
         <Route path="/leaves" component={Leaves} />
         <Route path="/evaluations" component={Evaluations} />
+        <Route path="/job-board" component={JobBoard} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
