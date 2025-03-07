@@ -326,7 +326,7 @@ export async function registerRoutes(app: Express) {
         const analysis = await analyzeResumeEnhanced(resume.resumeText, jobDescription);
         console.log("AI analysis completed for resume:", created.id);
 
-        const updated = await storage.updateResumeAnalysis(
+        const updated = await storage.updateResumeAIAnalysis(
           created.id,
           analysis.score,
           analysis.feedback,
@@ -339,14 +339,25 @@ export async function registerRoutes(app: Express) {
         res.status(201).json(updated);
       } catch (analysisError) {
         console.error("AI analysis failed for resume:", created.id, analysisError);
-        // Still return the created resume even if AI analysis fails
+        // Update the resume with error status
+        await storage.updateResumeAIAnalysis(
+          created.id,
+          0,
+          { error: "Analysis failed, please try again later" },
+          [],
+          [],
+          [],
+          []
+        );
+
         res.status(201).json({
           ...created,
           aiScore: null,
           aiFeedback: {
-            error: "Analysis pending, please try again later",
+            error: "Analysis failed, please try again later",
             retryable: true
           },
+          status: "error"
         });
       }
     } catch (error) {

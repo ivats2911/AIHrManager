@@ -262,15 +262,23 @@ export async function analyzeResumeEnhanced(
   education: Array<{ degree: string; institution: string; year: number }>;
 }> {
   try {
+    console.log("Starting resume analysis with OpenAI...");
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: `You are an expert HR recruiter. Analyze the provided resume for the specified job position and provide a JSON response with exactly this format:
+          content: `You are an expert HR recruiter. Analyze the provided resume against the job description and provide a detailed analysis. Focus on:
+1. Matching skills and experience
+2. Educational background
+3. Career progression
+4. Technical expertise
+5. Potential interview questions
+
+Provide a JSON response with exactly this format:
 {
-  "score": <number between 1-100>,
-  "matchScore": <number between 1-100>,
+  "score": <overall score 1-100>,
+  "matchScore": <job match score 1-100>,
   "feedback": {
     "strengths": ["strength1", "strength2", ...],
     "weaknesses": ["weakness1", "weakness2", ...],
@@ -297,30 +305,33 @@ Do not include any other text before or after the JSON.`
       throw new Error("No content received from OpenAI");
     }
 
+    console.log("Received OpenAI response, parsing result...");
     const result = JSON.parse(content);
 
     // Validate the response structure
     if (
       typeof result.score !== 'number' || 
       typeof result.matchScore !== 'number' ||
-      !Array.isArray(result.feedback.strengths) ||
-      !Array.isArray(result.feedback.weaknesses) ||
-      !Array.isArray(result.feedback.skillsIdentified) ||
+      !Array.isArray(result.feedback?.strengths) ||
+      !Array.isArray(result.feedback?.weaknesses) ||
+      !Array.isArray(result.feedback?.skillsIdentified) ||
       !Array.isArray(result.suggestedQuestions) ||
       !Array.isArray(result.experience) ||
       !Array.isArray(result.education)
     ) {
+      console.error("Invalid response structure:", result);
       throw new Error("Invalid response structure from AI");
     }
 
-    // Ensure score is within bounds
+    // Ensure scores are within bounds
     result.score = Math.min(100, Math.max(1, result.score));
     result.matchScore = Math.min(100, Math.max(1, result.matchScore));
 
+    console.log("Successfully analyzed resume");
     return result;
   } catch (error: unknown) {
+    console.error("Resume analysis failed:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    console.error("Resume analysis failed:", errorMessage);
     throw new Error("Failed to analyze resume: " + errorMessage);
   }
 }
