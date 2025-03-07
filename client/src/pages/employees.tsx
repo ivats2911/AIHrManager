@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmployeeForm } from "@/components/employees/employee-form";
-import { BulkOnboarding } from "@/components/employees/bulk-onboarding";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -74,8 +73,6 @@ export default function Employees() {
           </DialogContent>
         </Dialog>
       </div>
-
-      <BulkOnboarding />
 
       <div className="rounded-md border-2 border-primary/20">
         <Table>
