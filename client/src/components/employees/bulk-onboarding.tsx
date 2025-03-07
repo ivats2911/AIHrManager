@@ -60,9 +60,9 @@ export function BulkOnboarding() {
               firstName, 
               lastName, 
               email, 
-              position, 
+              position, // This matches the schema field name
               department, 
-              joinDate,
+              joinDate: new Date(joinDate).toISOString().split('T')[0], // Ensure proper date format
               status: "active",
               profileImage: null 
             };
@@ -76,13 +76,14 @@ export function BulkOnboarding() {
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to process bulk upload: ${response.statusText}`);
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to process bulk upload: ${response.statusText}`);
         }
 
         const result = await response.json();
         return result;
       } catch (error) {
-        throw new Error("Failed to process employee data");
+        throw new Error(error instanceof Error ? error.message : "Failed to process employee data");
       }
     },
     onSuccess: (data) => {

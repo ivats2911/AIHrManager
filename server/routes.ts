@@ -75,15 +75,21 @@ export async function registerRoutes(app: Express) {
       for (let i = 0; i < employees.length; i++) {
         try {
           const employeeData = {
-            ...employees[i],
+            firstName: employees[i].firstName,
+            lastName: employees[i].lastName,
+            email: employees[i].email,
+            position: employees[i].position,
+            department: employees[i].department,
             joinDate: new Date(employees[i].joinDate),
-            status: "active"
+            status: "active",
+            profileImage: null
           };
 
           const validatedEmployee = insertEmployeeSchema.parse(employeeData);
           await storage.createEmployee(validatedEmployee);
           results.successful++;
         } catch (error) {
+          console.error(`Failed to process employee at row ${i + 1}:`, error);
           results.failed++;
           results.errors.push({
             row: i + 1,
