@@ -44,7 +44,7 @@ export function ResumeUpload() {
       phone: "",
       position: "",
       resumeText: "",
-      jobListingId: undefined,
+      jobListingId: "",
       submittedAt: new Date(),
     },
   });
@@ -159,7 +159,7 @@ export function ResumeUpload() {
                     <FormLabel>Apply for Position</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value?.toString()}
+                      value={field.value?.toString() || ""}
                     >
                       <FormControl>
                         <SelectTrigger>
