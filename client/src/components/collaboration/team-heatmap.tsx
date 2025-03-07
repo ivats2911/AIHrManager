@@ -43,6 +43,21 @@ export function TeamHeatmap() {
     );
   }
 
+  if (!employees.length) {
+    return (
+      <Card className="w-full h-[600px] border-2 border-primary/20">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-center">
+            No employee data available
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-full">
+          <p className="text-muted-foreground">Add employees to view collaboration patterns.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Process data for the heatmap
   const heatmapData = employees.map((employee, i) =>
     employees.map((collaborator, j) => {
@@ -68,7 +83,9 @@ export function TeamHeatmap() {
   const CustomHeatmapCell = (props: any) => {
     const { x, y, width, height, value } = props;
     const intensity = value / maxIntensity;
-    const color = `rgb(${Math.round(intensity * 79)}, ${Math.round(intensity * 120)}, ${Math.round(intensity * 255)})`;
+    const color = value === 0 
+      ? 'rgb(241, 245, 249)' // Very light gray for no collaboration
+      : `rgb(${Math.round(intensity * 79)}, ${Math.round(intensity * 120)}, ${Math.round(intensity * 255)})`;
 
     return (
       <Rectangle
@@ -78,7 +95,7 @@ export function TeamHeatmap() {
         height={height}
         fill={color}
         className="transition-all duration-300 hover:opacity-80 hover:stroke-primary hover:stroke-2"
-        style={{ opacity: 0.8 }}
+        style={{ opacity: value === 0 ? 0.5 : 0.8 }}
       />
     );
   };
