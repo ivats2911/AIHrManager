@@ -2,6 +2,24 @@ import { pgTable, text, serial, integer, date, timestamp, jsonb, boolean } from 
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Add users table
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  password: text("password").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  role: text("role").notNull().default("user"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Add login schema
+export const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
   firstName: text("first_name").notNull(),
@@ -30,7 +48,7 @@ export const evaluations = pgTable("evaluations", {
   evaluationDate: date("evaluation_date").notNull(),
   performance: integer("performance").notNull(),
   feedback: text("feedback").notNull(),
-  goals: jsonb("goals").$type<string[]>().notNull(), 
+  goals: jsonb("goals").$type<string[]>().notNull(),
 });
 
 export const resumes = pgTable("resumes", {
@@ -74,7 +92,6 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Add more specific validation rules to the employee schema
 export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true }).extend({
   firstName: z.string().min(1, "First name is required").max(100, "First name is too long"),
   lastName: z.string().min(1, "Last name is required").max(100, "Last name is too long"),
@@ -89,7 +106,6 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: tru
   profileImage: z.string().nullable(),
 });
 
-// Update the leave schema with more specific validation
 export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true }).extend({
   employeeId: z.number({
     required_error: "Employee is required",
@@ -113,9 +129,9 @@ export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true }).e
 });
 
 export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ id: true });
-export const insertResumeSchema = createInsertSchema(resumes).omit({ 
-  id: true, 
-  aiScore: true, 
+export const insertResumeSchema = createInsertSchema(resumes).omit({
+  id: true,
+  aiScore: true,
   aiFeedback: true,
   parsedSkills: true,
   suggestedQuestions: true,
@@ -124,7 +140,7 @@ export const insertResumeSchema = createInsertSchema(resumes).omit({
   submittedAt: z.coerce.date()
 });
 
-export const insertJobListingSchema = createInsertSchema(jobListings).omit({ 
+export const insertJobListingSchema = createInsertSchema(jobListings).omit({
   id: true,
   postedAt: true,
   status: true
@@ -135,6 +151,9 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
   isRead: true
 });
+
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true });
+
 
 export type Employee = typeof employees.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
@@ -148,3 +167,5 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type JobListing = typeof jobListings.$inferSelect;
 export type InsertJobListing = z.infer<typeof insertJobListingSchema>;
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
