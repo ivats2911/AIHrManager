@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Upload } from "lucide-react";
+import type { JobListing } from "@shared/schema";
 
 export function ResumeUpload() {
   const [isUploading, setIsUploading] = useState(false);
@@ -31,7 +32,7 @@ export function ResumeUpload() {
   const queryClient = useQueryClient();
 
   // Fetch job listings
-  const { data: jobListings = [] } = useQuery({
+  const { data: jobListings = [] } = useQuery<JobListing[]>({
     queryKey: ["/api/job-listings"],
   });
 
@@ -57,6 +58,7 @@ export function ResumeUpload() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
+          jobListingId: data.jobListingId ? parseInt(data.jobListingId, 10) : undefined,
           submittedAt: new Date().toISOString(),
         }),
       });
@@ -157,7 +159,7 @@ export function ResumeUpload() {
                     <FormLabel>Apply for Position</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      defaultValue={field.value?.toString()}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -165,7 +167,7 @@ export function ResumeUpload() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {jobListings.map((job:any) => (
+                        {jobListings.map((job) => (
                           <SelectItem key={job.id} value={job.id.toString()}>
                             {job.title} - {job.department}
                           </SelectItem>
