@@ -314,23 +314,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Collaboration routes
-  app.get("/api/collaborations", async (req, res) => {
-    const collaborations = await storage.getCollaborations();
-    res.json(collaborations);
-  });
-
-  app.post("/api/collaborations", async (req, res) => {
-    const collaboration = insertCollaborationSchema.parse(req.body);
-    const created = await storage.createCollaboration(collaboration);
-    res.status(201).json(created);
-  });
-
-  app.get("/api/employees/:id/collaborations", async (req, res) => {
-    const collaborations = await storage.getCollaborationsByEmployee(Number(req.params.id));
-    res.json(collaborations);
-  });
-
   // Team Matching Route
   app.post("/api/teams/match", async (req, res) => {
     try {

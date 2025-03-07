@@ -74,16 +74,6 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const collaborations = pgTable("collaborations", {
-  id: serial("id").primaryKey(),
-  employeeId: integer("employee_id").notNull(),
-  collaboratorId: integer("collaborator_id").notNull(),
-  type: text("type").notNull(), 
-  intensity: integer("intensity").notNull(), 
-  date: date("date").notNull(),
-  metadata: jsonb("metadata"),
-});
-
 export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true });
 export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true });
 export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ id: true });
@@ -110,8 +100,6 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   isRead: true
 });
 
-export const insertCollaborationSchema = createInsertSchema(collaborations).omit({ id: true });
-
 export type Employee = typeof employees.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 export type Leave = typeof leaves.$inferSelect;
@@ -120,12 +108,7 @@ export type Evaluation = typeof evaluations.$inferSelect;
 export type InsertEvaluation = z.infer<typeof insertEvaluationSchema>;
 export type Resume = typeof resumes.$inferSelect;
 export type InsertResume = z.infer<typeof insertResumeSchema>;
-
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
-
-export type Collaboration = typeof collaborations.$inferSelect;
-export type InsertCollaboration = z.infer<typeof insertCollaborationSchema>;
-
 export type JobListing = typeof jobListings.$inferSelect;
 export type InsertJobListing = z.infer<typeof insertJobListingSchema>;

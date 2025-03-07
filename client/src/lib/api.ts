@@ -4,7 +4,6 @@ import type {
   Leave, InsertLeave,
   Evaluation, InsertEvaluation,
   Resume, InsertResume,
-  Collaboration, InsertCollaboration 
 } from "@shared/schema";
 
 export const api = {
@@ -36,10 +35,5 @@ export const api = {
     markAsRead: (id: number) => apiRequest("PATCH", `/api/notifications/${id}/read`),
     delete: (id: number) => apiRequest("DELETE", `/api/notifications/${id}`),
     generateInsights: () => apiRequest("POST", "/api/notifications/generate-insights"),
-  },
-  collaborations: {
-    list: () => apiRequest("GET", "/api/collaborations"),
-    create: (data: InsertCollaboration) => apiRequest("POST", "/api/collaborations", data),
-    getByEmployee: (id: number) => apiRequest("GET", `/api/employees/${id}/collaborations`),
   },
 };

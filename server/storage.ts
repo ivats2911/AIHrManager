@@ -9,8 +9,6 @@ import {
   type InsertResume,
   type Notification,
   type InsertNotification,
-  type Collaboration,
-  type InsertCollaboration,
   type JobListing,
   type InsertJobListing,
   employees,
@@ -18,11 +16,10 @@ import {
   evaluations,
   resumes,
   notifications,
-  collaborations,
   jobListings,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Employee operations
@@ -68,11 +65,6 @@ export interface IStorage {
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: number): Promise<Notification>;
   deleteNotification(id: number): Promise<void>;
-
-  // Collaboration operations
-  getCollaborations(): Promise<Collaboration[]>;
-  createCollaboration(collaboration: InsertCollaboration): Promise<Collaboration>;
-  getCollaborationsByEmployee(employeeId: number): Promise<Collaboration[]>;
 }
 
 export class PostgresStorage implements IStorage {
@@ -252,28 +244,6 @@ export class PostgresStorage implements IStorage {
 
   async deleteNotification(id: number): Promise<void> {
     await db.delete(notifications).where(eq(notifications.id, id));
-  }
-
-  // Collaboration operations
-  async getCollaborations(): Promise<Collaboration[]> {
-    return await db.select().from(collaborations);
-  }
-
-  async createCollaboration(collaboration: InsertCollaboration): Promise<Collaboration> {
-    const [result] = await db.insert(collaborations).values(collaboration).returning();
-    return result;
-  }
-
-  async getCollaborationsByEmployee(employeeId: number): Promise<Collaboration[]> {
-    return await db
-      .select()
-      .from(collaborations)
-      .where(
-        or(
-          eq(collaborations.employeeId, employeeId),
-          eq(collaborations.collaboratorId, employeeId)
-        )
-      );
   }
 }
 
