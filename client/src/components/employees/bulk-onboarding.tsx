@@ -50,15 +50,12 @@ export function BulkOnboarding() {
   const { mutate: uploadEmployees, isPending } = useMutation({
     mutationFn: async (data: { employeesData: string }) => {
       try {
-        // Parse CSV data into employee objects, ignoring skills
+        // Parse CSV data into employee objects
         const employeesList = data.employeesData
           .trim()
           .split("\n")
           .map((line) => {
-            // Only take the first 6 fields and ignore the rest (skills)
             const [firstName, lastName, email, position, department, joinDate] = line.split(",").map(s => s.trim());
-
-            // Only include the fields that match our schema
             return { 
               firstName, 
               lastName, 
@@ -121,9 +118,8 @@ export function BulkOnboarding() {
       <CardHeader>
         <CardTitle className="text-2xl">Bulk Employee Onboarding</CardTitle>
         <CardDescription>
-          Upload multiple employees using CSV format. Each line should contain:
-          firstName, lastName, email, position, department, joinDate
-          (Additional fields like skills will be ignored)
+          Enter one employee per line in CSV format with these exact fields:
+          firstName, lastName, email, position, department, joinDate (YYYY-MM-DD)
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -141,7 +137,7 @@ export function BulkOnboarding() {
                     <Textarea
                       {...field}
                       rows={10}
-                      placeholder="John,Doe,john@example.com,Developer,Engineering,2024-03-07"
+                      placeholder="Sarah,Johnson,sarah.j@company.com,Senior Developer,Engineering,2024-03-07"
                       className="font-mono text-sm bg-background resize-none"
                     />
                   </FormControl>
