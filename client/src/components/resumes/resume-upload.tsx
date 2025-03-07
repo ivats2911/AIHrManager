@@ -25,6 +25,15 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Upload } from "lucide-react";
 import type { JobListing } from "@shared/schema";
+import { z } from "zod";
+
+// Extend the schema to add custom validation rules
+const formSchema = insertResumeSchema.extend({
+  candidateName: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email").min(1, "Email is required"),
+  resumeText: z.string().min(50, "Resume content must be at least 50 characters"),
+  position: z.string().min(1, "Position is required"),
+});
 
 export function ResumeUpload() {
   const [isUploading, setIsUploading] = useState(false);
@@ -37,7 +46,7 @@ export function ResumeUpload() {
   });
 
   const form = useForm({
-    resolver: zodResolver(insertResumeSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       candidateName: "",
       email: "",
@@ -50,6 +59,15 @@ export function ResumeUpload() {
   });
 
   async function onSubmit(data: any) {
+    if (!data.resumeText.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Resume content cannot be empty",
+      });
+      return;
+    }
+
     setIsUploading(true);
     try {
       console.log("Submitting resume data:", data);
@@ -115,7 +133,7 @@ export function ResumeUpload() {
                 name="candidateName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Candidate Name</FormLabel>
+                    <FormLabel>Candidate Name *</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="John Doe" className="bg-background" />
                     </FormControl>
@@ -129,7 +147,7 @@ export function ResumeUpload() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Email *</FormLabel>
                     <FormControl>
                       <Input {...field} type="email" placeholder="john@example.com" className="bg-background" />
                     </FormControl>
@@ -157,7 +175,7 @@ export function ResumeUpload() {
                 name="jobListingId"
                 render={({ field: { onChange, value, ...field } }) => (
                   <FormItem>
-                    <FormLabel>Apply for Position</FormLabel>
+                    <FormLabel>Apply for Position *</FormLabel>
                     <Select
                       onValueChange={(newValue) => {
                         onChange(newValue ? Number(newValue) : null);
@@ -188,7 +206,7 @@ export function ResumeUpload() {
               name="resumeText"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Resume Content</FormLabel>
+                  <FormLabel>Resume Content *</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
