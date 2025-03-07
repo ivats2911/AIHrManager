@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmployeeForm } from "@/components/employees/employee-form";
+import { BulkOnboarding } from "@/components/employees/bulk-onboarding";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -53,10 +54,20 @@ export default function Employees() {
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Employees</h1>
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+            Employees
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your organization's workforce
+          </p>
+        </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>Add Employee</Button>
+            <Button className="relative overflow-hidden transition-all hover:shadow-xl">
+              <span className="relative z-10">Add Employee</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 transform scale-x-0 transition-transform origin-left hover:scale-x-100" />
+            </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <EmployeeForm onSubmit={createEmployee} />
@@ -64,7 +75,9 @@ export default function Employees() {
         </Dialog>
       </div>
 
-      <div className="rounded-md border">
+      <BulkOnboarding />
+
+      <div className="rounded-md border-2 border-primary/20">
         <Table>
           <TableHeader>
             <TableRow>
@@ -77,10 +90,10 @@ export default function Employees() {
           </TableHeader>
           <TableBody>
             {employees?.map((employee) => (
-              <TableRow key={employee.id}>
+              <TableRow key={employee.id} className="transition-colors hover:bg-muted/50">
                 <TableCell className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={employee.profileImage} />
+                    <AvatarImage src={employee.profileImage || undefined} />
                     <AvatarFallback>
                       {employee.firstName[0]}
                       {employee.lastName[0]}
