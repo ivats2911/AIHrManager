@@ -2,14 +2,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCollaborationSchema } from "@shared/schema";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
 import type { Employee } from "@shared/schema";
 
 interface CreateCollaborationProps {
@@ -28,11 +27,24 @@ export function CreateCollaboration({ employees }: CreateCollaborationProps) {
       collaboratorId: undefined,
       intensity: 5,
       type: "project",
+      date: new Date().toISOString().split('T')[0]
     },
   });
 
   const { mutate: createCollaboration, isPending } = useMutation({
-    mutationFn: api.collaborations.create,
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/collaborations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create collaboration");
+      }
+
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/collaborations"] });
       setOpen(false);
@@ -42,11 +54,11 @@ export function CreateCollaboration({ employees }: CreateCollaborationProps) {
       });
       form.reset();
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create collaboration",
+        description: `Failed to create collaboration: ${error.message}`,
       });
     },
   });
@@ -59,6 +71,9 @@ export function CreateCollaboration({ employees }: CreateCollaborationProps) {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Collaboration</DialogTitle>
+          <DialogDescription>
+            Record a collaboration between team members
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => createCollaboration(data))} className="space-y-6">
