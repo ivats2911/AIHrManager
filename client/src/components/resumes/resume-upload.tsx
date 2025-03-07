@@ -44,7 +44,7 @@ export function ResumeUpload() {
       phone: "",
       position: "",
       resumeText: "",
-      jobListingId: "",
+      jobListingId: null,
       submittedAt: new Date(),
     },
   });
@@ -58,7 +58,8 @@ export function ResumeUpload() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          jobListingId: data.jobListingId ? parseInt(data.jobListingId, 10) : undefined,
+          // Convert jobListingId to number if it exists
+          jobListingId: data.jobListingId ? Number(data.jobListingId) : null,
           submittedAt: new Date().toISOString(),
         }),
       });
@@ -154,12 +155,14 @@ export function ResumeUpload() {
               <FormField
                 control={form.control}
                 name="jobListingId"
-                render={({ field }) => (
+                render={({ field: { onChange, value, ...field } }) => (
                   <FormItem>
                     <FormLabel>Apply for Position</FormLabel>
                     <Select
-                      onValueChange={field.onChange}
-                      value={field.value?.toString() || ""}
+                      onValueChange={(newValue) => {
+                        onChange(newValue ? Number(newValue) : null);
+                      }}
+                      value={value?.toString() || undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
