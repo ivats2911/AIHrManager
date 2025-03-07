@@ -84,6 +84,103 @@ Do not include any other text before or after the JSON.`,
   }
 }
 
+export async function analyzePerformanceData(
+  evaluations: Array<{
+    employeeId: number;
+    performance: number;
+    feedback: string;
+    goals: string[];
+    evaluationDate: string;
+  }>,
+  employeeInfo: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    role: string;
+    department: string;
+  }
+): Promise<{
+  trends: {
+    overall: string;
+    strengths: string[];
+    areasForImprovement: string[];
+  };
+  recommendations: {
+    personal: string[];
+    manager: string[];
+    training: string[];
+  };
+  predictiveInsights: {
+    potentialPath: string;
+    riskFactors: string[];
+    opportunities: string[];
+  };
+}> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert HR analyst. Analyze the employee's performance evaluations and provide insights. Return a JSON response with exactly this format:
+{
+  "trends": {
+    "overall": "summary of performance trend",
+    "strengths": ["key strength 1", "key strength 2"],
+    "areasForImprovement": ["area 1", "area 2"]
+  },
+  "recommendations": {
+    "personal": ["recommendation 1", "recommendation 2"],
+    "manager": ["suggestion 1", "suggestion 2"],
+    "training": ["training 1", "training 2"]
+  },
+  "predictiveInsights": {
+    "potentialPath": "career progression prediction",
+    "riskFactors": ["risk 1", "risk 2"],
+    "opportunities": ["opportunity 1", "opportunity 2"]
+  }
+}
+Do not include any other text before or after the JSON.`,
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            evaluations,
+            employeeInfo,
+          }),
+        },
+      ],
+      temperature: 0.7,
+      response_format: { type: "json_object" },
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("No content received from OpenAI");
+    }
+
+    const result = JSON.parse(content);
+
+    // Validate the response structure
+    if (
+      !result.trends ||
+      !result.recommendations ||
+      !result.predictiveInsights ||
+      !Array.isArray(result.trends.strengths) ||
+      !Array.isArray(result.recommendations.personal) ||
+      !Array.isArray(result.predictiveInsights.opportunities)
+    ) {
+      throw new Error("Invalid response structure from AI");
+    }
+
+    return result;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    console.error("Performance analysis failed:", errorMessage);
+    throw new Error("Failed to analyze performance data: " + errorMessage);
+  }
+}
+
 export async function analyzeResume(resumeText: string, position: string): Promise<{
   score: number;
   feedback: {
@@ -118,36 +215,29 @@ Do not include any other text before or after the JSON.`
 
     const content = response.choices[0].message.content;
     if (!content) {
-      console.error("No content received from OpenAI");
       throw new Error("No content received from OpenAI");
     }
 
-    try {
-      const result = JSON.parse(content);
+    const result = JSON.parse(content);
 
-      // Validate the response structure
-      if (
-        typeof result.score !== 'number' || 
-        !Array.isArray(result.strengths) || 
-        !Array.isArray(result.weaknesses) || 
-        typeof result.recommendation !== 'string'
-      ) {
-        console.error("Invalid response structure:", result);
-        throw new Error("Invalid response structure from AI");
-      }
-
-      return {
-        score: Math.min(100, Math.max(1, result.score)),
-        feedback: {
-          strengths: result.strengths,
-          weaknesses: result.weaknesses,
-          recommendation: result.recommendation,
-        },
-      };
-    } catch (parseError) {
-      console.error("Failed to parse OpenAI response:", parseError);
-      throw new Error("Failed to parse AI response");
+    // Validate the response structure
+    if (
+      typeof result.score !== 'number' || 
+      !Array.isArray(result.strengths) || 
+      !Array.isArray(result.weaknesses) || 
+      typeof result.recommendation !== 'string'
+    ) {
+      throw new Error("Invalid response structure from AI");
     }
+
+    return {
+      score: Math.min(100, Math.max(1, result.score)),
+      feedback: {
+        strengths: result.strengths,
+        weaknesses: result.weaknesses,
+        recommendation: result.recommendation,
+      },
+    };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
     console.error("Resume analysis failed:", errorMessage);

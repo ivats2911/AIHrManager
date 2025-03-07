@@ -1,39 +1,93 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { analyzeResume, analyzeTeamCompatibility } from "./openai";
+import { analyzeResume, analyzeTeamCompatibility, analyzePerformanceData } from "./openai";
 import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, insertCollaborationSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { generateAndStoreInsights } from "./notifications";
 
 export async function registerRoutes(app: Express) {
-  // Error handling middleware
+  // Error handling middleware for validation errors
   app.use((err: Error, req: any, res: any, next: any) => {
+    console.error("Request error:", err);
+
     if (err instanceof ZodError) {
       return res.status(400).json({ 
         message: "Validation error", 
         errors: err.errors 
       });
     }
+
+    if (err.name === 'OpenAIError') {
+      return res.status(503).json({
+        message: "AI processing service temporarily unavailable",
+        retry: true
+      });
+    }
+
     next(err);
   });
 
   // Employee routes
   app.get("/api/employees", async (req, res) => {
-    const employees = await storage.getEmployees();
-    res.json(employees);
+    try {
+      const employees = await storage.getEmployees();
+      res.json(employees);
+    } catch (error) {
+      console.error("Failed to fetch employees:", error);
+      res.status(500).json({ message: "Failed to fetch employees" });
+    }
   });
 
   app.post("/api/employees", async (req, res) => {
-    const employee = insertEmployeeSchema.parse(req.body);
-    const created = await storage.createEmployee(employee);
-    res.status(201).json(created);
+    try {
+      const employee = insertEmployeeSchema.parse(req.body);
+      const created = await storage.createEmployee(employee);
+      res.status(201).json(created);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ 
+          message: "Validation error", 
+          errors: error.errors 
+        });
+      }
+      console.error("Failed to create employee:", error);
+      res.status(500).json({ message: "Failed to create employee" });
+    }
   });
 
-  app.get("/api/employees/:id", async (req, res) => {
-    const employee = await storage.getEmployee(Number(req.params.id));
-    if (!employee) return res.status(404).json({ message: "Employee not found" });
-    res.json(employee);
+  // Performance Analysis Route
+  app.get("/api/employees/:id/performance-insights", async (req, res) => {
+    try {
+      const employeeId = Number(req.params.id);
+      const employee = await storage.getEmployee(employeeId);
+
+      if (!employee) {
+        return res.status(404).json({ message: "Employee not found" });
+      }
+
+      const evaluations = await storage.getEvaluationsByEmployee(employeeId);
+
+      if (!evaluations.length) {
+        return res.status(404).json({ message: "No evaluations found for employee" });
+      }
+
+      const insights = await analyzePerformanceData(evaluations, {
+        id: employee.id,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        role: employee.position,
+        department: employee.department
+      });
+
+      res.json(insights);
+    } catch (error) {
+      console.error("Failed to analyze performance:", error);
+      res.status(500).json({ 
+        message: "Failed to analyze performance data",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
   });
 
   // Leave routes
@@ -77,32 +131,34 @@ export async function registerRoutes(app: Express) {
     res.json(resumes);
   });
 
+  // Resume Analysis Route with Enhanced Error Handling
   app.post("/api/resumes", async (req, res) => {
     try {
       const resume = insertResumeSchema.parse(req.body);
       const created = await storage.createResume(resume);
-      console.log("Resume created:", created);
+      console.log("Resume created:", created.id);
 
       try {
         console.log("Starting AI analysis for resume:", created.id);
         const analysis = await analyzeResume(resume.resumeText, resume.position);
-        console.log("AI analysis completed:", analysis);
+        console.log("AI analysis completed for resume:", created.id);
 
         const updated = await storage.updateResumeAIAnalysis(
           created.id,
           analysis.score,
           analysis.feedback
         );
-        console.log("Resume updated with analysis:", updated);
+
         res.status(201).json(updated);
       } catch (analysisError) {
-        console.error("AI analysis failed:", analysisError);
+        console.error("AI analysis failed for resume:", created.id, analysisError);
         // Still return the created resume even if AI analysis fails
         res.status(201).json({
           ...created,
           aiScore: null,
           aiFeedback: {
-            error: "Analysis failed, please try again later",
+            error: "Analysis pending, please try again later",
+            retryable: true
           },
         });
       }
@@ -165,19 +221,30 @@ export async function registerRoutes(app: Express) {
     res.json(collaborations);
   });
 
-  // Team matching route
+  // Team Matching Route
   app.post("/api/teams/match", async (req, res) => {
     try {
-      const { employees, projectRequirements } = req.body;
+      const { projectRequirements } = req.body;
 
-      if (!Array.isArray(employees) || typeof projectRequirements !== "string") {
-        return res.status(400).json({ 
-          message: "Invalid request format" 
-        });
+      if (typeof projectRequirements !== "string") {
+        return res.status(400).json({ message: "Project requirements must be a string" });
+      }
+
+      const employees = await storage.getEmployees();
+
+      if (!employees.length) {
+        return res.status(404).json({ message: "No employees found" });
       }
 
       const teamSuggestions = await analyzeTeamCompatibility(
-        employees,
+        employees.map(emp => ({
+          id: emp.id,
+          firstName: emp.firstName,
+          lastName: emp.lastName,
+          role: emp.position,
+          department: emp.department,
+          skills: [] // Add skills from employee profile when available
+        })),
         projectRequirements
       );
 
@@ -185,7 +252,8 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Team matching failed:", error);
       res.status(500).json({ 
-        message: "Failed to analyze team compatibility" 
+        message: "Failed to analyze team compatibility",
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });

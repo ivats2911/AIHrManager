@@ -11,7 +11,15 @@ import {
   type InsertNotification,
   type Collaboration,
   type InsertCollaboration,
+  employees,
+  leaves,
+  evaluations,
+  resumes,
+  notifications,
+  collaborations,
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, or } from "drizzle-orm";
 
 export interface IStorage {
   // Employee operations
@@ -50,120 +58,92 @@ export interface IStorage {
   getCollaborationsByEmployee(employeeId: number): Promise<Collaboration[]>;
 }
 
-export class MemStorage implements IStorage {
-  private employees: Map<number, Employee> = new Map();
-  private leaves: Map<number, Leave> = new Map();
-  private evaluations: Map<number, Evaluation> = new Map();
-  private resumes: Map<number, Resume> = new Map();
-  private notifications: Map<number, Notification> = new Map();
-  private collaborations: Map<number, Collaboration> = new Map();
-  private currentIds = {
-    employees: 1,
-    leaves: 1,
-    evaluations: 1,
-    resumes: 1,
-    notifications: 1,
-    collaborations: 1,
-  };
-
+export class PostgresStorage implements IStorage {
   // Employee operations
   async getEmployees(): Promise<Employee[]> {
-    return Array.from(this.employees.values());
+    return await db.select().from(employees);
   }
 
   async getEmployee(id: number): Promise<Employee | undefined> {
-    return this.employees.get(id);
+    const results = await db.select().from(employees).where(eq(employees.id, id));
+    return results[0];
   }
 
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
-    const id = this.currentIds.employees++;
-    const newEmployee: Employee = {
-      ...employee,
-      id,
-      status: employee.status || "active",
-      profileImage: employee.profileImage || null,
-    };
-    this.employees.set(id, newEmployee);
-    return newEmployee;
+    const [result] = await db.insert(employees).values(employee).returning();
+    return result;
   }
 
   async updateEmployee(id: number, update: Partial<Employee>): Promise<Employee> {
-    const employee = await this.getEmployee(id);
-    if (!employee) throw new Error("Employee not found");
-    const updated = { ...employee, ...update };
-    this.employees.set(id, updated);
-    return updated;
+    const [result] = await db
+      .update(employees)
+      .set(update)
+      .where(eq(employees.id, id))
+      .returning();
+    return result;
   }
 
   // Leave operations
   async getLeaves(): Promise<Leave[]> {
-    return Array.from(this.leaves.values());
+    return await db.select().from(leaves);
   }
 
   async getLeavesByEmployee(employeeId: number): Promise<Leave[]> {
-    return Array.from(this.leaves.values()).filter(
-      (leave) => leave.employeeId === employeeId
-    );
+    return await db
+      .select()
+      .from(leaves)
+      .where(eq(leaves.employeeId, employeeId));
   }
 
   async createLeave(leave: InsertLeave): Promise<Leave> {
-    const id = this.currentIds.leaves++;
-    const newLeave: Leave = {
-      ...leave,
-      id,
-      status: leave.status || "pending",
-    };
-    this.leaves.set(id, newLeave);
-    return newLeave;
+    const [result] = await db.insert(leaves).values(leave).returning();
+    return result;
   }
 
   async updateLeaveStatus(id: number, status: string): Promise<Leave> {
-    const leave = this.leaves.get(id);
-    if (!leave) throw new Error("Leave request not found");
-    const updated = { ...leave, status };
-    this.leaves.set(id, updated);
-    return updated;
+    const [result] = await db
+      .update(leaves)
+      .set({ status })
+      .where(eq(leaves.id, id))
+      .returning();
+    return result;
   }
 
   // Evaluation operations
   async getEvaluations(): Promise<Evaluation[]> {
-    return Array.from(this.evaluations.values());
+    return await db.select().from(evaluations);
   }
 
   async getEvaluationsByEmployee(employeeId: number): Promise<Evaluation[]> {
-    return Array.from(this.evaluations.values()).filter(
-      (evaluation) => evaluation.employeeId === employeeId
-    );
+    return await db
+      .select()
+      .from(evaluations)
+      .where(eq(evaluations.employeeId, employeeId));
   }
 
   async createEvaluation(evaluation: InsertEvaluation): Promise<Evaluation> {
-    const id = this.currentIds.evaluations++;
-    const newEvaluation = { ...evaluation, id };
-    this.evaluations.set(id, newEvaluation);
-    return newEvaluation;
+    const [result] = await db.insert(evaluations).values(evaluation).returning();
+    return result;
   }
 
   // Resume operations
   async getResumes(): Promise<Resume[]> {
-    return Array.from(this.resumes.values());
+    return await db.select().from(resumes);
   }
 
   async getResume(id: number): Promise<Resume | undefined> {
-    return this.resumes.get(id);
+    const results = await db.select().from(resumes).where(eq(resumes.id, id));
+    return results[0];
   }
 
   async createResume(resume: InsertResume): Promise<Resume> {
-    const id = this.currentIds.resumes++;
-    const newResume: Resume = {
+    const [result] = await db.insert(resumes).values({
       ...resume,
-      id,
       aiScore: null,
       aiFeedback: null,
       status: "pending",
-      submittedAt: new Date(),
-    };
-    this.resumes.set(id, newResume);
-    return newResume;
+    }).returning();
+    return result;
   }
 
   async updateResumeAIAnalysis(
@@ -171,75 +151,78 @@ export class MemStorage implements IStorage {
     score: number,
     feedback: unknown
   ): Promise<Resume> {
-    const resume = await this.getResume(id);
-    if (!resume) throw new Error("Resume not found");
-    const updated = { ...resume, aiScore: score, aiFeedback: feedback };
-    this.resumes.set(id, updated);
-    return updated;
+    const [result] = await db
+      .update(resumes)
+      .set({
+        aiScore: score,
+        aiFeedback: feedback,
+        status: "processed",
+      })
+      .where(eq(resumes.id, id))
+      .returning();
+    return result;
   }
 
   // Notification operations
   async getNotifications(): Promise<Notification[]> {
-    return Array.from(this.notifications.values())
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return await db
+      .select()
+      .from(notifications)
+      .orderBy(notifications.createdAt);
   }
 
   async getUnreadNotifications(): Promise<Notification[]> {
-    return Array.from(this.notifications.values())
-      .filter((notification) => !notification.isRead)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.isRead, false))
+      .orderBy(notifications.createdAt);
   }
 
   async createNotification(notification: InsertNotification): Promise<Notification> {
-    const id = this.currentIds.notifications++;
-    const newNotification: Notification = {
+    const [result] = await db.insert(notifications).values({
       ...notification,
-      id,
       isRead: false,
       createdAt: new Date(),
-      metadata: notification.metadata || {},
-    };
-    this.notifications.set(id, newNotification);
-    return newNotification;
+    }).returning();
+    return result;
   }
 
   async markNotificationAsRead(id: number): Promise<Notification> {
-    const notification = this.notifications.get(id);
-    if (!notification) {
-      throw new Error("Notification not found");
-    }
-    const updated = { ...notification, isRead: true };
-    this.notifications.set(id, updated);
-    return updated;
+    const [result] = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    return result;
   }
 
   async deleteNotification(id: number): Promise<void> {
-    if (!this.notifications.has(id)) {
-      throw new Error("Notification not found");
-    }
-    this.notifications.delete(id);
+    await db.delete(notifications).where(eq(notifications.id, id));
   }
 
   // Collaboration operations
   async getCollaborations(): Promise<Collaboration[]> {
-    return Array.from(this.collaborations.values());
+    return await db.select().from(collaborations);
   }
 
   async createCollaboration(collaboration: InsertCollaboration): Promise<Collaboration> {
-    const id = this.currentIds.collaborations++;
-    const newCollaboration: Collaboration = {
-      ...collaboration,
-      id,
-    };
-    this.collaborations.set(id, newCollaboration);
-    return newCollaboration;
+    const [result] = await db.insert(collaborations).values(collaboration).returning();
+    return result;
   }
 
   async getCollaborationsByEmployee(employeeId: number): Promise<Collaboration[]> {
-    return Array.from(this.collaborations.values()).filter(
-      (c) => c.employeeId === employeeId || c.collaboratorId === employeeId
-    );
+    return await db
+      .select()
+      .from(collaborations)
+      .where(
+        or(
+          eq(collaborations.employeeId, employeeId),
+          eq(collaborations.collaboratorId, employeeId)
+        )
+      );
   }
 }
 
-export const storage = new MemStorage();
+// Export a single instance
+export const storage = new PostgresStorage();
