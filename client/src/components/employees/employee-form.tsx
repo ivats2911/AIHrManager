@@ -24,7 +24,7 @@ export function EmployeeForm({ onSubmit }: { onSubmit: (data: any) => void }) {
       department: "",
       joinDate: new Date().toISOString().split("T")[0],
       status: "active",
-      profileImage: "https://images.unsplash.com/photo-1507679799987-c73779587ccf",
+      profileImage: null,
     },
   });
 
@@ -44,9 +44,9 @@ export function EmployeeForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           name="firstName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>First Name</FormLabel>
+              <FormLabel>First Name <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="Enter first name" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -58,9 +58,9 @@ export function EmployeeForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           name="lastName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Last Name</FormLabel>
+              <FormLabel>Last Name <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="Enter last name" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -72,9 +72,9 @@ export function EmployeeForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Email <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input type="email" {...field} />
+                <Input type="email" {...field} placeholder="Enter email address" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -86,9 +86,9 @@ export function EmployeeForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           name="position"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Position</FormLabel>
+              <FormLabel>Position <span className="text-red-500">*</span></FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="Enter position" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -100,7 +100,7 @@ export function EmployeeForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           name="department"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Department</FormLabel>
+              <FormLabel>Department <span className="text-red-500">*</span></FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -125,7 +125,7 @@ export function EmployeeForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           name="joinDate"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Join Date</FormLabel>
+              <FormLabel>Join Date <span className="text-red-500">*</span></FormLabel>
               <FormControl>
                 <Input type="date" {...field} />
               </FormControl>
@@ -134,7 +134,13 @@ export function EmployeeForm({ onSubmit }: { onSubmit: (data: any) => void }) {
           )}
         />
 
-        <Button type="submit">Add Employee</Button>
+        <Button 
+          type="submit" 
+          className="w-full transition-all hover:shadow-lg"
+          disabled={!form.formState.isValid || form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? "Adding..." : "Add Employee"}
+        </Button>
       </form>
     </Form>
   );

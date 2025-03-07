@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { Employee } from "@shared/schema";
+import { Employee, insertEmployeeSchema } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmployeeForm } from "@/components/employees/employee-form";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { ZodError } from "zod";
 
 export default function Employees() {
   const [open, setOpen] = useState(false);
@@ -21,13 +22,32 @@ export default function Employees() {
 
   const { mutate: createEmployee } = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch("/api/employees", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error("Failed to create employee");
-      return res.json();
+      try {
+        // Validate the data before sending to server
+        const validatedData = insertEmployeeSchema.parse(data);
+
+        const res = await fetch("/api/employees", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(validatedData),
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.message || "Failed to create employee");
+        }
+
+        return res.json();
+      } catch (error) {
+        if (error instanceof ZodError) {
+          // Format validation errors
+          const formattedErrors = error.errors.map(err => 
+            `${err.path.join('.')}: ${err.message}`
+          ).join(', ');
+          throw new Error(`Validation failed: ${formattedErrors}`);
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/employees"] });
@@ -37,11 +57,11 @@ export default function Employees() {
         description: "Employee created successfully",
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create employee",
+        description: error.message,
       });
     },
   });

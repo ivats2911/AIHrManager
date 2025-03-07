@@ -74,7 +74,21 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true });
+// Add more specific validation rules to the employee schema
+export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: true }).extend({
+  firstName: z.string().min(1, "First name is required").max(100, "First name is too long"),
+  lastName: z.string().min(1, "Last name is required").max(100, "Last name is too long"),
+  email: z.string().email("Invalid email address").min(1, "Email is required"),
+  position: z.string().min(1, "Position is required").max(100, "Position is too long"),
+  department: z.string().min(1, "Department is required"),
+  joinDate: z.string().min(1, "Join date is required"),
+  status: z.enum(["active", "inactive"], {
+    required_error: "Status is required",
+    invalid_type_error: "Status must be either active or inactive",
+  }).default("active"),
+  profileImage: z.string().nullable(),
+});
+
 export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true });
 export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ id: true });
 export const insertResumeSchema = createInsertSchema(resumes).omit({ 
