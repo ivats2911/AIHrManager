@@ -11,12 +11,15 @@ import {
   type InsertNotification,
   type Collaboration,
   type InsertCollaboration,
+  type JobListing,
+  type InsertJobListing,
   employees,
   leaves,
   evaluations,
   resumes,
   notifications,
   collaborations,
+  jobListings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, or } from "drizzle-orm";
@@ -43,7 +46,21 @@ export interface IStorage {
   getResumes(): Promise<Resume[]>;
   getResume(id: number): Promise<Resume | undefined>;
   createResume(resume: InsertResume): Promise<Resume>;
-  updateResumeAIAnalysis(id: number, score: number, feedback: any): Promise<Resume>;
+  updateResumeAIAnalysis(
+    id: number,
+    score: number,
+    feedback: unknown,
+    experience: unknown,
+    education: unknown,
+    skills: string[],
+    questions: string[]
+  ): Promise<Resume>;
+
+  // Job Listing operations
+  getJobListings(): Promise<JobListing[]>;
+  getJobListing(id: number): Promise<JobListing | undefined>;
+  createJobListing(jobListing: InsertJobListing): Promise<JobListing>;
+  updateJobListing(id: number, jobListing: Partial<JobListing>): Promise<JobListing>;
 
   // Notification operations
   getNotifications(): Promise<Notification[]>;
@@ -149,16 +166,52 @@ export class PostgresStorage implements IStorage {
   async updateResumeAIAnalysis(
     id: number,
     score: number,
-    feedback: unknown
+    feedback: unknown,
+    experience: unknown,
+    education: unknown,
+    skills: string[],
+    questions: string[]
   ): Promise<Resume> {
     const [result] = await db
       .update(resumes)
       .set({
         aiScore: score,
         aiFeedback: feedback,
+        experience: experience,
+        education: education,
+        parsedSkills: skills,
+        suggestedQuestions: questions,
         status: "processed",
       })
       .where(eq(resumes.id, id))
+      .returning();
+    return result;
+  }
+
+  // Job Listing operations
+  async getJobListings(): Promise<JobListing[]> {
+    return await db.select().from(jobListings);
+  }
+
+  async getJobListing(id: number): Promise<JobListing | undefined> {
+    const results = await db.select().from(jobListings).where(eq(jobListings.id, id));
+    return results[0];
+  }
+
+  async createJobListing(jobListing: InsertJobListing): Promise<JobListing> {
+    const [result] = await db.insert(jobListings).values({
+      ...jobListing,
+      postedAt: new Date(),
+      status: "active"
+    }).returning();
+    return result;
+  }
+
+  async updateJobListing(id: number, update: Partial<JobListing>): Promise<JobListing> {
+    const [result] = await db
+      .update(jobListings)
+      .set(update)
+      .where(eq(jobListings.id, id))
       .returning();
     return result;
   }
