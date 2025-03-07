@@ -22,8 +22,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge"; // This line was added
+import { Badge } from "@/components/ui/badge";
 import { X, Plus, Loader2 } from "lucide-react";
+import { z } from "zod";
+
+// Extend the schema to add custom validation rules
+const formSchema = insertJobListingSchema.extend({
+  title: z.string().min(1, "Job title is required"),
+  department: z.string().min(1, "Department is required"),
+  description: z.string().min(50, "Description must be at least 50 characters"),
+});
 
 interface CreateJobListingProps {
   open: boolean;
@@ -40,7 +48,7 @@ export function CreateJobListing({ open, onOpenChange }: CreateJobListingProps) 
   const queryClient = useQueryClient();
 
   const form = useForm({
-    resolver: zodResolver(insertJobListingSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       title: "",
       department: "",
@@ -52,6 +60,11 @@ export function CreateJobListing({ open, onOpenChange }: CreateJobListingProps) 
 
   const { mutate: createJob, isPending } = useMutation({
     mutationFn: async (data: any) => {
+      // Validate requirements
+      if (requirements.length === 0) {
+        throw new Error("At least one requirement is needed");
+      }
+
       const response = await fetch("/api/job-listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -120,7 +133,7 @@ export function CreateJobListing({ open, onOpenChange }: CreateJobListingProps) 
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Job Title</FormLabel>
+                  <FormLabel>Job Title *</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Senior Software Engineer" />
                   </FormControl>
@@ -134,7 +147,7 @@ export function CreateJobListing({ open, onOpenChange }: CreateJobListingProps) 
               name="department"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Department</FormLabel>
+                  <FormLabel>Department *</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Engineering" />
                   </FormControl>
@@ -148,11 +161,11 @@ export function CreateJobListing({ open, onOpenChange }: CreateJobListingProps) 
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Job Description</FormLabel>
+                  <FormLabel>Job Description *</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
-                      placeholder="Describe the role, responsibilities, and what you're looking for..."
+                      placeholder="Describe the role, responsibilities, and what you're looking for... (minimum 50 characters)"
                       rows={5}
                     />
                   </FormControl>
@@ -163,7 +176,7 @@ export function CreateJobListing({ open, onOpenChange }: CreateJobListingProps) 
 
             <div className="space-y-4">
               <div>
-                <FormLabel>Requirements</FormLabel>
+                <FormLabel>Requirements *</FormLabel>
                 <div className="flex gap-2 mb-2">
                   <Input
                     value={newRequirement}
@@ -175,6 +188,9 @@ export function CreateJobListing({ open, onOpenChange }: CreateJobListingProps) 
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
+                {requirements.length === 0 && (
+                  <p className="text-sm text-destructive">At least one requirement is needed</p>
+                )}
                 <div className="flex flex-wrap gap-2">
                   {requirements.map((req, i) => (
                     <Badge key={i} variant="secondary" className="gap-1">
@@ -192,7 +208,7 @@ export function CreateJobListing({ open, onOpenChange }: CreateJobListingProps) 
               </div>
 
               <div>
-                <FormLabel>Preferred Skills</FormLabel>
+                <FormLabel>Preferred Skills (Optional)</FormLabel>
                 <div className="flex gap-2 mb-2">
                   <Input
                     value={newSkill}
@@ -225,7 +241,7 @@ export function CreateJobListing({ open, onOpenChange }: CreateJobListingProps) 
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending || requirements.length === 0}>
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
