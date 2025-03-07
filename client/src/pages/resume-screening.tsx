@@ -6,10 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { School, Briefcase, List, MessagesSquare } from "lucide-react";
 
 interface AIFeedback {
   strengths: string[];
   weaknesses: string[];
+  skillsIdentified: string[];
   recommendation: string;
 }
 
@@ -64,7 +66,7 @@ export default function ResumeScreening() {
               <CardTitle className="text-xl font-bold">
                 {resume.candidateName}
                 <div className="text-sm font-normal text-muted-foreground mt-1">
-                  for {resume.position}
+                  {resume.email} • {resume.phone}
                 </div>
               </CardTitle>
               <Badge variant={resume.status === "pending" ? "secondary" : "default"}>
@@ -74,28 +76,85 @@ export default function ResumeScreening() {
             <CardContent>
               {resume.aiScore !== null && (
                 <div className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span>AI Match Score</span>
-                      <span className="font-semibold text-primary">
-                        {resume.aiScore}%
-                      </span>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span>AI Match Score</span>
+                        <span className="font-semibold text-primary">
+                          {resume.aiScore}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={resume.aiScore} 
+                        className="h-2"
+                      />
                     </div>
-                    <Progress 
-                      value={resume.aiScore} 
-                      className="h-2"
-                      indicatorClassName={`${
-                        resume.aiScore >= 70
-                          ? "bg-green-500"
-                          : resume.aiScore >= 40
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                      }`}
-                    />
                   </div>
 
                   {resume.aiFeedback && (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
+                      <div>
+                        <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
+                          <List className="h-4 w-4" />
+                          Identified Skills
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {(resume.parsedSkills || []).map((skill, i) => (
+                            <Badge key={i} variant="secondary">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
+                            <School className="h-4 w-4" />
+                            Education
+                          </h4>
+                          <div className="space-y-2">
+                            {(resume.education || []).map((edu, i) => (
+                              <div key={i} className="text-sm">
+                                <div className="font-medium">{edu.degree}</div>
+                                <div className="text-muted-foreground">
+                                  {edu.institution} • {edu.year}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
+                            <Briefcase className="h-4 w-4" />
+                            Experience
+                          </h4>
+                          <div className="space-y-2">
+                            {(resume.experience || []).map((exp, i) => (
+                              <div key={i} className="text-sm">
+                                <div className="font-medium">{exp.title}</div>
+                                <div className="text-muted-foreground">
+                                  {exp.company} • {exp.years} years
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
+                          <MessagesSquare className="h-4 w-4" />
+                          Suggested Interview Questions
+                        </h4>
+                        <ul className="list-disc pl-4 text-sm space-y-1">
+                          {(resume.suggestedQuestions || []).map((question, i) => (
+                            <li key={i}>{question}</li>
+                          ))}
+                        </ul>
+                      </div>
+
                       <div>
                         <h4 className="font-semibold text-sm text-primary mb-2">Key Strengths</h4>
                         <ul className="list-disc pl-4 text-sm space-y-1">
@@ -104,6 +163,7 @@ export default function ResumeScreening() {
                           ))}
                         </ul>
                       </div>
+
                       <div>
                         <h4 className="font-semibold text-sm text-primary mb-2">Areas for Improvement</h4>
                         <ul className="list-disc pl-4 text-sm space-y-1 text-muted-foreground">
@@ -112,6 +172,7 @@ export default function ResumeScreening() {
                           ))}
                         </ul>
                       </div>
+
                       <div>
                         <h4 className="font-semibold text-sm text-primary mb-2">AI Recommendation</h4>
                         <p className="text-sm text-muted-foreground">

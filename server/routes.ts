@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { analyzeResume, analyzeTeamCompatibility, analyzePerformanceData } from "./openai";
-import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, insertCollaborationSchema } from "@shared/schema";
+import { analyzeResume, analyzeTeamCompatibility, analyzePerformanceData, analyzeResumeEnhanced } from "./openai"; // Assumed analyzeResumeEnhanced exists
+import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, insertCollaborationSchema, insertJobListingSchema } from "@shared/schema"; // Assumed insertJobListingSchema exists
 import { ZodError } from "zod";
 import { generateAndStoreInsights } from "./notifications";
 
@@ -12,9 +12,9 @@ export async function registerRoutes(app: Express) {
     console.error("Request error:", err);
 
     if (err instanceof ZodError) {
-      return res.status(400).json({ 
-        message: "Validation error", 
-        errors: err.errors 
+      return res.status(400).json({
+        message: "Validation error",
+        errors: err.errors
       });
     }
 
@@ -46,9 +46,9 @@ export async function registerRoutes(app: Express) {
       res.status(201).json(created);
     } catch (error) {
       if (error instanceof ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors
         });
       }
       console.error("Failed to create employee:", error);
@@ -60,8 +60,8 @@ export async function registerRoutes(app: Express) {
     try {
       const employees = req.body;
       if (!Array.isArray(employees)) {
-        return res.status(400).json({ 
-          message: "Invalid request format - expecting an array of employees" 
+        return res.status(400).json({
+          message: "Invalid request format - expecting an array of employees"
         });
       }
 
@@ -93,9 +93,9 @@ export async function registerRoutes(app: Express) {
       for (let i = 0; i < employees.length; i++) {
         try {
           // Validate required fields
-          if (!employees[i].firstName?.trim() || !employees[i].lastName?.trim() || 
-              !employees[i].email?.trim() || !employees[i].position?.trim() || 
-              !employees[i].department?.trim() || !employees[i].joinDate) {
+          if (!employees[i].firstName?.trim() || !employees[i].lastName?.trim() ||
+            !employees[i].email?.trim() || !employees[i].position?.trim() ||
+            !employees[i].department?.trim() || !employees[i].joinDate) {
             throw new Error("Missing required fields");
           }
 
@@ -138,7 +138,7 @@ export async function registerRoutes(app: Express) {
       res.json(results);
     } catch (error) {
       console.error("Bulk upload failed:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to process bulk upload",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -180,7 +180,7 @@ export async function registerRoutes(app: Express) {
       res.json(insights);
     } catch (error) {
       console.error("Failed to analyze performance:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to analyze performance data",
         error: error instanceof Error ? error.message : "Unknown error"
       });
@@ -224,11 +224,82 @@ export async function registerRoutes(app: Express) {
 
   // Resume routes
   app.get("/api/resumes", async (req, res) => {
-    const resumes = await storage.getResumes();
-    res.json(resumes);
+    try {
+      const resumes = await storage.getResumes();
+      res.json(resumes);
+    } catch (error) {
+      console.error("Failed to fetch resumes:", error);
+      res.status(500).json({ message: "Failed to fetch resumes" });
+    }
   });
 
-  // Resume Analysis Route with Enhanced Error Handling
+  // Job Listings routes
+  app.get("/api/job-listings", async (req, res) => {
+    try {
+      const jobListings = await storage.getJobListings();
+      res.json(jobListings);
+    } catch (error) {
+      console.error("Failed to fetch job listings:", error);
+      res.status(500).json({ message: "Failed to fetch job listings" });
+    }
+  });
+
+  app.post("/api/job-listings", async (req, res) => {
+    try {
+      const jobListing = insertJobListingSchema.parse(req.body);
+      const created = await storage.createJobListing(jobListing);
+      res.status(201).json(created);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Failed to create job listing:", error);
+      res.status(500).json({ message: "Failed to create job listing" });
+    }
+  });
+
+  // Enhanced Resume Analysis Route
+  app.post("/api/resumes/analyze", async (req, res) => {
+    try {
+      const { resumeText, jobListingId } = req.body;
+
+      if (!resumeText || !jobListingId) {
+        return res.status(400).json({ message: "Resume text and job listing ID are required" });
+      }
+
+      // Get job listing details
+      const jobListing = await storage.getJobListing(jobListingId);
+      if (!jobListing) {
+        return res.status(404).json({ message: "Job listing not found" });
+      }
+
+      // Create job description from listing
+      const jobDescription = `
+        Position: ${jobListing.title}
+        Department: ${jobListing.department}
+        Description: ${jobListing.description}
+        Requirements: ${jobListing.requirements.join(", ")}
+        Preferred Skills: ${jobListing.preferredSkills?.join(", ") || ""}
+      `;
+
+      console.log("Starting AI analysis for resume with job matching");
+      const analysis = await analyzeResumeEnhanced(resumeText, jobDescription);
+      console.log("AI analysis completed");
+
+      res.json({
+        analysis,
+        jobListing
+      });
+    } catch (error) {
+      console.error("Resume analysis failed:", error);
+      res.status(500).json({
+        message: "Failed to analyze resume",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Enhanced Resume Submission Route
   app.post("/api/resumes", async (req, res) => {
     try {
       const resume = insertResumeSchema.parse(req.body);
@@ -236,14 +307,33 @@ export async function registerRoutes(app: Express) {
       console.log("Resume created:", created.id);
 
       try {
+        // Get job listing if provided
+        let jobDescription = resume.position; // Use position as fallback
+        if (resume.jobListingId) {
+          const jobListing = await storage.getJobListing(resume.jobListingId);
+          if (jobListing) {
+            jobDescription = `
+              Position: ${jobListing.title}
+              Department: ${jobListing.department}
+              Description: ${jobListing.description}
+              Requirements: ${jobListing.requirements.join(", ")}
+              Preferred Skills: ${jobListing.preferredSkills?.join(", ") || ""}
+            `;
+          }
+        }
+
         console.log("Starting AI analysis for resume:", created.id);
-        const analysis = await analyzeResume(resume.resumeText, resume.position);
+        const analysis = await analyzeResumeEnhanced(resume.resumeText, jobDescription);
         console.log("AI analysis completed for resume:", created.id);
 
-        const updated = await storage.updateResumeAIAnalysis(
+        const updated = await storage.updateResumeAnalysis(
           created.id,
           analysis.score,
-          analysis.feedback
+          analysis.feedback,
+          analysis.experience,
+          analysis.education,
+          analysis.feedback.skillsIdentified,
+          analysis.suggestedQuestions
         );
 
         res.status(201).json(updated);
@@ -262,9 +352,9 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       console.error("Resume creation failed:", error);
       if (error instanceof ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Validation error",
+          errors: error.errors
         });
       }
       res.status(500).json({ message: "Failed to process resume" });
@@ -348,7 +438,7 @@ export async function registerRoutes(app: Express) {
       res.json(teamSuggestions);
     } catch (error) {
       console.error("Team matching failed:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to analyze team compatibility",
         error: error instanceof Error ? error.message : "Unknown error"
       });

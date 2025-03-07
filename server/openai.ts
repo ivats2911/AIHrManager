@@ -244,3 +244,83 @@ Do not include any other text before or after the JSON.`
     throw new Error("Failed to analyze resume: " + errorMessage);
   }
 }
+
+export async function analyzeResumeEnhanced(
+  resumeText: string, 
+  jobDescription: string
+): Promise<{
+  score: number;
+  matchScore: number;
+  feedback: {
+    strengths: string[];
+    weaknesses: string[];
+    skillsIdentified: string[];
+    recommendation: string;
+  };
+  suggestedQuestions: string[];
+  experience: Array<{ title: string; company: string; years: number }>;
+  education: Array<{ degree: string; institution: string; year: number }>;
+}> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert HR recruiter. Analyze the provided resume for the specified job position and provide a JSON response with exactly this format:
+{
+  "score": <number between 1-100>,
+  "matchScore": <number between 1-100>,
+  "feedback": {
+    "strengths": ["strength1", "strength2", ...],
+    "weaknesses": ["weakness1", "weakness2", ...],
+    "skillsIdentified": ["skill1", "skill2", ...],
+    "recommendation": "detailed hiring recommendation"
+  },
+  "suggestedQuestions": ["question1", "question2", ...],
+  "experience": [{"title": "job title", "company": "company name", "years": number}, ...],
+  "education": [{"degree": "degree name", "institution": "school name", "year": number}, ...]
+}
+Do not include any other text before or after the JSON.`
+        },
+        {
+          role: "user",
+          content: `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}`,
+        },
+      ],
+      temperature: 0.7,
+      response_format: { type: "json_object" },
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("No content received from OpenAI");
+    }
+
+    const result = JSON.parse(content);
+
+    // Validate the response structure
+    if (
+      typeof result.score !== 'number' || 
+      typeof result.matchScore !== 'number' ||
+      !Array.isArray(result.feedback.strengths) ||
+      !Array.isArray(result.feedback.weaknesses) ||
+      !Array.isArray(result.feedback.skillsIdentified) ||
+      !Array.isArray(result.suggestedQuestions) ||
+      !Array.isArray(result.experience) ||
+      !Array.isArray(result.education)
+    ) {
+      throw new Error("Invalid response structure from AI");
+    }
+
+    // Ensure score is within bounds
+    result.score = Math.min(100, Math.max(1, result.score));
+    result.matchScore = Math.min(100, Math.max(1, result.matchScore));
+
+    return result;
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    console.error("Resume analysis failed:", errorMessage);
+    throw new Error("Failed to analyze resume: " + errorMessage);
+  }
+}

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertResumeSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -15,6 +15,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Upload } from "lucide-react";
 
@@ -23,12 +30,20 @@ export function ResumeUpload() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Fetch job listings
+  const { data: jobListings = [] } = useQuery({
+    queryKey: ["/api/job-listings"],
+  });
+
   const form = useForm({
     resolver: zodResolver(insertResumeSchema),
     defaultValues: {
       candidateName: "",
+      email: "",
+      phone: "",
       position: "",
       resumeText: "",
+      jobListingId: undefined,
       submittedAt: new Date(),
     },
   });
@@ -85,7 +100,7 @@ export function ResumeUpload() {
       <CardHeader>
         <CardTitle className="text-2xl">Upload Resume</CardTitle>
         <CardDescription>
-          Upload a resume for AI-powered analysis and scoring
+          Upload a resume for AI-powered analysis and job matching
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -108,13 +123,55 @@ export function ResumeUpload() {
 
               <FormField
                 control={form.control}
-                name="position"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Position Applied For</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Software Engineer" className="bg-background" />
+                      <Input {...field} type="email" placeholder="john@example.com" className="bg-background" />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone (Optional)</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="+1 (555) 123-4567" className="bg-background" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="jobListingId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Apply for Position</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a position" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {jobListings.map((job:any) => (
+                          <SelectItem key={job.id} value={job.id.toString()}>
+                            {job.title} - {job.department}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

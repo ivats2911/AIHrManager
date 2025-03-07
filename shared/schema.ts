@@ -30,18 +30,36 @@ export const evaluations = pgTable("evaluations", {
   evaluationDate: date("evaluation_date").notNull(),
   performance: integer("performance").notNull(),
   feedback: text("feedback").notNull(),
-  goals: jsonb("goals").$type<string[]>().notNull(), // Explicitly type as string array
+  goals: jsonb("goals").$type<string[]>().notNull(), 
 });
 
 export const resumes = pgTable("resumes", {
   id: serial("id").primaryKey(),
   candidateName: text("candidate_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
   position: text("position").notNull(),
   resumeText: text("resume_text").notNull(),
+  parsedSkills: jsonb("parsed_skills").$type<string[]>(),
+  education: jsonb("education").$type<{ degree: string; institution: string; year: number }[]>(),
+  experience: jsonb("experience").$type<{ title: string; company: string; years: number }[]>(),
   aiScore: integer("ai_score"),
   aiFeedback: jsonb("ai_feedback"),
+  suggestedQuestions: jsonb("suggested_questions").$type<string[]>(),
   status: text("status").notNull().default("pending"),
+  jobListingId: integer("job_listing_id").references(() => jobListings.id),
   submittedAt: timestamp("submitted_at").notNull(),
+});
+
+export const jobListings = pgTable("job_listings", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  department: text("department").notNull(),
+  description: text("description").notNull(),
+  requirements: jsonb("requirements").$type<string[]>().notNull(),
+  preferredSkills: jsonb("preferred_skills").$type<string[]>(),
+  status: text("status").notNull().default("active"),
+  postedAt: timestamp("posted_at").notNull().defaultNow(),
 });
 
 export const notifications = pgTable("notifications", {
@@ -60,8 +78,8 @@ export const collaborations = pgTable("collaborations", {
   id: serial("id").primaryKey(),
   employeeId: integer("employee_id").notNull(),
   collaboratorId: integer("collaborator_id").notNull(),
-  type: text("type").notNull(), // meeting, project, chat, etc.
-  intensity: integer("intensity").notNull(), // 1-10 scale
+  type: text("type").notNull(), 
+  intensity: integer("intensity").notNull(), 
   date: date("date").notNull(),
   metadata: jsonb("metadata"),
 });
@@ -72,9 +90,18 @@ export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ id:
 export const insertResumeSchema = createInsertSchema(resumes).omit({ 
   id: true, 
   aiScore: true, 
-  aiFeedback: true 
+  aiFeedback: true,
+  parsedSkills: true,
+  suggestedQuestions: true,
+  status: true
 }).extend({
   submittedAt: z.coerce.date()
+});
+
+export const insertJobListingSchema = createInsertSchema(jobListings).omit({ 
+  id: true,
+  postedAt: true,
+  status: true
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({
@@ -99,3 +126,6 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export type Collaboration = typeof collaborations.$inferSelect;
 export type InsertCollaboration = z.infer<typeof insertCollaborationSchema>;
+
+export type JobListing = typeof jobListings.$inferSelect;
+export type InsertJobListing = z.infer<typeof insertJobListingSchema>;
