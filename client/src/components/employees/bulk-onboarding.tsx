@@ -50,19 +50,22 @@ export function BulkOnboarding() {
   const { mutate: uploadEmployees, isPending } = useMutation({
     mutationFn: async (data: { employeesData: string }) => {
       try {
-        // Parse CSV data into employee objects
+        // Parse CSV data into employee objects, ignoring skills
         const employeesList = data.employeesData
           .trim()
           .split("\n")
           .map((line) => {
-            const [firstName, lastName, email, position, department, joinDate, ...skills] = line.split(",").map(s => s.trim());
+            // Only take the first 6 fields and ignore the rest (skills)
+            const [firstName, lastName, email, position, department, joinDate] = line.split(",").map(s => s.trim());
+
+            // Only include the fields that match our schema
             return { 
               firstName, 
               lastName, 
               email, 
-              position, // This matches the schema field name
+              position,
               department, 
-              joinDate: new Date(joinDate).toISOString().split('T')[0], // Ensure proper date format
+              joinDate: new Date(joinDate).toISOString().split('T')[0],
               status: "active",
               profileImage: null 
             };
@@ -119,7 +122,8 @@ export function BulkOnboarding() {
         <CardTitle className="text-2xl">Bulk Employee Onboarding</CardTitle>
         <CardDescription>
           Upload multiple employees using CSV format. Each line should contain:
-          firstName, lastName, email, position, department, joinDate, skill1, skill2, ...
+          firstName, lastName, email, position, department, joinDate
+          (Additional fields like skills will be ignored)
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -137,7 +141,7 @@ export function BulkOnboarding() {
                     <Textarea
                       {...field}
                       rows={10}
-                      placeholder="John,Doe,john@example.com,Developer,Engineering,2024-03-07,JavaScript,React,Node.js"
+                      placeholder="John,Doe,john@example.com,Developer,Engineering,2024-03-07"
                       className="font-mono text-sm bg-background resize-none"
                     />
                   </FormControl>
