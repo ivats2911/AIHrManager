@@ -51,12 +51,12 @@ export function EmployeeStats() {
   };
 
   return (
-    <div className="grid grid-cols-2 gap-8 h-[300px]">
-      <div>
+    <div className="w-full h-[400px] grid grid-cols-1 md:grid-cols-2 gap-8 p-4">
+      <div className="relative h-full">
         <h3 className="text-sm font-medium text-center mb-4">
           Department Distribution
         </h3>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
               data={departmentData}
@@ -79,7 +79,7 @@ export function EmployeeStats() {
                 if (active && payload && payload.length) {
                   const data = payload[0];
                   return (
-                    <div className="bg-background border rounded-lg shadow-lg p-2">
+                    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-lg shadow-lg p-2">
                       <p className="text-sm font-medium">{String(data.name)}</p>
                       <p className="text-sm">
                         Employees: {data.value}
@@ -90,16 +90,21 @@ export function EmployeeStats() {
                 return null;
               }}
             />
-            <Legend />
+            <Legend 
+              wrapperStyle={{
+                paddingTop: '20px',
+                fontSize: '12px'
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
 
-      <div>
+      <div className="relative h-full">
         <h3 className="text-sm font-medium text-center mb-4">
           Employee Status
         </h3>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
               data={statusData}
@@ -122,7 +127,7 @@ export function EmployeeStats() {
                 if (active && payload && payload.length) {
                   const data = payload[0];
                   return (
-                    <div className="bg-background border rounded-lg shadow-lg p-2">
+                    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-lg shadow-lg p-2">
                       <p className="text-sm font-medium">{String(data.name)}</p>
                       <p className="text-sm">
                         Employees: {data.value}
@@ -133,7 +138,12 @@ export function EmployeeStats() {
                 return null;
               }}
             />
-            <Legend />
+            <Legend 
+              wrapperStyle={{
+                paddingTop: '20px',
+                fontSize: '12px'
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
