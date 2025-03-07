@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertCollaborationSchema } from "@shared/schema";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -66,7 +66,10 @@ export function CreateCollaboration({ employees }: CreateCollaborationProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>Add Collaboration</Button>
+        <Button className="relative overflow-hidden transition-all hover:shadow-xl">
+          <span className="relative z-10">Add Collaboration</span>
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 transform scale-x-0 transition-transform origin-left hover:scale-x-100" />
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
@@ -165,7 +168,7 @@ export function CreateCollaboration({ employees }: CreateCollaborationProps) {
               )}
             />
 
-            <Button type="submit" disabled={isPending} className="w-full">
+            <Button type="submit" disabled={isPending} className="w-full transition-all hover:shadow-lg">
               Create Collaboration
             </Button>
           </form>
