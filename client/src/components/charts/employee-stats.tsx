@@ -36,14 +36,19 @@ export function EmployeeStats() {
     value,
   }));
 
-  // Colors for the charts
-  const DEPARTMENT_COLORS = [
-    "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-    "hsl(var(--chart-5))",
-  ];
+  // Professional color scheme for departments
+  const DEPARTMENT_COLORS = {
+    Engineering: "#4f46e5", // Indigo
+    Marketing: "#0ea5e9",   // Sky Blue
+    Sales: "#10b981",       // Emerald
+    "Human Resources": "#8b5cf6", // Purple
+    Finance: "#f59e0b",     // Amber
+    Operations: "#ec4899",  // Pink
+    "Customer Support": "#6366f1", // Indigo
+    Legal: "#14b8a6",       // Teal
+    "Research": "#8b5cf6",  // Purple
+    "Product": "#f43f5e",   // Rose
+  };
 
   const STATUS_COLORS = {
     active: "hsl(var(--primary))",
@@ -67,10 +72,11 @@ export function EmployeeStats() {
               paddingAngle={5}
               dataKey="value"
             >
-              {departmentData.map((_, index) => (
+              {departmentData.map((entry) => (
                 <Cell
-                  key={`cell-${index}`}
-                  fill={DEPARTMENT_COLORS[index % DEPARTMENT_COLORS.length]}
+                  key={`cell-${entry.name}`}
+                  fill={DEPARTMENT_COLORS[entry.name as keyof typeof DEPARTMENT_COLORS] || "#cbd5e1"}
+                  className="transition-all duration-300 hover:opacity-80"
                 />
               ))}
             </Pie>
@@ -79,7 +85,7 @@ export function EmployeeStats() {
                 if (active && payload && payload.length) {
                   const data = payload[0];
                   return (
-                    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-lg shadow-lg p-2">
+                    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-2 border-primary/20 rounded-lg shadow-lg p-3">
                       <p className="text-sm font-medium">{String(data.name)}</p>
                       <p className="text-sm">
                         Employees: {data.value}
@@ -118,7 +124,8 @@ export function EmployeeStats() {
               {statusData.map((entry) => (
                 <Cell
                   key={`cell-${entry.name}`}
-                  fill={STATUS_COLORS[entry.name.toLowerCase() as keyof typeof STATUS_COLORS] || DEPARTMENT_COLORS[0]}
+                  fill={STATUS_COLORS[entry.name.toLowerCase() as keyof typeof STATUS_COLORS] || "#cbd5e1"}
+                  className="transition-all duration-300 hover:opacity-80"
                 />
               ))}
             </Pie>
@@ -127,7 +134,7 @@ export function EmployeeStats() {
                 if (active && payload && payload.length) {
                   const data = payload[0];
                   return (
-                    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-lg shadow-lg p-2">
+                    <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-2 border-primary/20 rounded-lg shadow-lg p-3">
                       <p className="text-sm font-medium">{String(data.name)}</p>
                       <p className="text-sm">
                         Employees: {data.value}
