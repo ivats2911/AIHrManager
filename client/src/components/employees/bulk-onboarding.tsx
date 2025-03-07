@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Upload, Check, X } from "lucide-react";
 import { z } from "zod";
+import { SampleDataGenerator } from "./sample-data";
 
 const bulkUploadSchema = z.object({
   employeesData: z.string().min(1, "Please enter employee data"),
@@ -119,6 +120,8 @@ export function BulkOnboarding() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((data) => uploadEmployees(data))} className="space-y-6">
+            <SampleDataGenerator />
+
             <FormField
               control={form.control}
               name="employeesData"
