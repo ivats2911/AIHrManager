@@ -16,11 +16,15 @@ import { insertEvaluationSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface EvaluationWithGoals extends Evaluation {
+  goals: string[];
+}
+
 export default function Evaluations() {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: evaluations, isLoading } = useQuery<Evaluation[]>({
+  const { data: evaluations, isLoading } = useQuery<EvaluationWithGoals[]>({
     queryKey: ["/api/evaluations"],
   });
 
@@ -246,7 +250,7 @@ export default function Evaluations() {
                   <div>
                     <span className="font-medium text-primary">Goals:</span>
                     <ul className="mt-1 list-disc pl-4 text-sm space-y-1">
-                      {evaluation.goals.map((goal, index) => (
+                      {evaluation.goals.map((goal: string, index: number) => (
                         <li key={index} className="text-muted-foreground">{goal}</li>
                       ))}
                     </ul>
