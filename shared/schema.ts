@@ -30,7 +30,7 @@ export const evaluations = pgTable("evaluations", {
   evaluationDate: date("evaluation_date").notNull(),
   performance: integer("performance").notNull(),
   feedback: text("feedback").notNull(),
-  goals: jsonb("goals").notNull(),
+  goals: jsonb("goals").$type<string[]>().notNull(), // Explicitly type as string array
 });
 
 export const resumes = pgTable("resumes", {

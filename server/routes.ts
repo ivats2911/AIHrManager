@@ -124,7 +124,15 @@ export async function registerRoutes(app: Express) {
         return res.status(404).json({ message: "No evaluations found for employee" });
       }
 
-      const insights = await analyzePerformanceData(evaluations, {
+      const processedEvaluations = evaluations.map(evaluation => ({
+        employeeId: evaluation.employeeId,
+        performance: evaluation.performance,
+        feedback: evaluation.feedback,
+        goals: (evaluation.goals as any[]).map(g => String(g)), // Ensure goals are strings
+        evaluationDate: evaluation.evaluationDate
+      }));
+
+      const insights = await analyzePerformanceData(processedEvaluations, {
         id: employee.id,
         firstName: employee.firstName,
         lastName: employee.lastName,
