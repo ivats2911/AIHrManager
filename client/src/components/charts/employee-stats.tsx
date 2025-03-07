@@ -14,20 +14,40 @@ export function EmployeeStats() {
     queryKey: ["/api/employees"],
   });
 
-  // Calculate department distribution
+  // Process data for the department chart
   const departmentStats = employees.reduce((acc, emp) => {
-    acc[emp.department] = (acc[emp.department] || 0) + 1;
+    const department = emp.department?.trim() || "Unassigned";
+    acc[department] = (acc[department] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  const departmentData = Object.entries(departmentStats).map(([name, value]) => ({
-    name,
-    value,
-  }));
+  const departmentData = Object.entries(departmentStats)
+    .sort((a, b) => b[1] - a[1]) // Sort by count in descending order
+    .map(([name, value]) => ({
+      name,
+      value,
+    }));
 
-  // Calculate status distribution
+  // Professional color scheme for departments with fallbacks
+  const DEPARTMENT_COLORS = {
+    Engineering: "#4f46e5",     // Indigo
+    Marketing: "#0ea5e9",       // Sky Blue
+    Sales: "#10b981",          // Emerald
+    "Human Resources": "#8b5cf6", // Purple
+    Finance: "#f59e0b",        // Amber
+    Operations: "#ec4899",     // Pink
+    "Customer Support": "#6366f1", // Indigo
+    Legal: "#14b8a6",          // Teal
+    Research: "#8b5cf6",       // Purple
+    Product: "#f43f5e",        // Rose
+    Unassigned: "#94a3b8",     // Slate
+    Other: "#cbd5e1",          // Default for unknown departments
+  };
+
+  // Calculate status statistics with proper handling of invalid status
   const statusStats = employees.reduce((acc, emp) => {
-    acc[emp.status] = (acc[emp.status] || 0) + 1;
+    const status = emp.status?.toLowerCase() || "unknown";
+    acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -36,23 +56,10 @@ export function EmployeeStats() {
     value,
   }));
 
-  // Professional color scheme for departments
-  const DEPARTMENT_COLORS = {
-    Engineering: "#4f46e5", // Indigo
-    Marketing: "#0ea5e9",   // Sky Blue
-    Sales: "#10b981",       // Emerald
-    "Human Resources": "#8b5cf6", // Purple
-    Finance: "#f59e0b",     // Amber
-    Operations: "#ec4899",  // Pink
-    "Customer Support": "#6366f1", // Indigo
-    Legal: "#14b8a6",       // Teal
-    "Research": "#8b5cf6",  // Purple
-    "Product": "#f43f5e",   // Rose
-  };
-
   const STATUS_COLORS = {
     active: "hsl(var(--primary))",
     inactive: "hsl(var(--muted))",
+    unknown: "#94a3b8", // Slate for unknown status
   };
 
   return (
@@ -60,6 +67,11 @@ export function EmployeeStats() {
       <div className="relative h-full">
         <h3 className="text-sm font-medium text-center mb-4">
           Department Distribution
+          {departmentData.some(d => d.name === "Unassigned") && (
+            <span className="text-xs text-muted-foreground ml-2">
+              (Some employees unassigned)
+            </span>
+          )}
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <PieChart>
@@ -75,7 +87,7 @@ export function EmployeeStats() {
               {departmentData.map((entry) => (
                 <Cell
                   key={`cell-${entry.name}`}
-                  fill={DEPARTMENT_COLORS[entry.name as keyof typeof DEPARTMENT_COLORS] || "#cbd5e1"}
+                  fill={DEPARTMENT_COLORS[entry.name as keyof typeof DEPARTMENT_COLORS] || DEPARTMENT_COLORS.Other}
                   className="transition-all duration-300 hover:opacity-80"
                 />
               ))}
@@ -88,7 +100,7 @@ export function EmployeeStats() {
                     <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-2 border-primary/20 rounded-lg shadow-lg p-3">
                       <p className="text-sm font-medium">{String(data.name)}</p>
                       <p className="text-sm">
-                        Employees: {data.value}
+                        Employees: {data.value} ({Math.round(data.value / employees.length * 100)}%)
                       </p>
                     </div>
                   );
@@ -137,7 +149,7 @@ export function EmployeeStats() {
                     <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-2 border-primary/20 rounded-lg shadow-lg p-3">
                       <p className="text-sm font-medium">{String(data.name)}</p>
                       <p className="text-sm">
-                        Employees: {data.value}
+                        Employees: {data.value} ({Math.round(data.value / employees.length * 100)}%)
                       </p>
                     </div>
                   );

@@ -72,20 +72,57 @@ export async function registerRoutes(app: Express) {
         errors: [] as { row: number; error: string }[]
       };
 
+      // Check for duplicate emails in the uploaded batch
+      const emailsInBatch = new Set<string>();
+      const duplicateEmails = new Set<string>();
+
+      employees.forEach((emp) => {
+        if (emailsInBatch.has(emp.email?.toLowerCase())) {
+          duplicateEmails.add(emp.email?.toLowerCase());
+        }
+        emailsInBatch.add(emp.email?.toLowerCase());
+      });
+
+      if (duplicateEmails.size > 0) {
+        return res.status(400).json({
+          message: "Duplicate emails found in upload",
+          duplicates: Array.from(duplicateEmails)
+        });
+      }
+
       for (let i = 0; i < employees.length; i++) {
         try {
+          // Validate required fields
+          if (!employees[i].firstName?.trim() || !employees[i].lastName?.trim() || 
+              !employees[i].email?.trim() || !employees[i].position?.trim() || 
+              !employees[i].department?.trim() || !employees[i].joinDate) {
+            throw new Error("Missing required fields");
+          }
+
           const employeeData = {
-            firstName: employees[i].firstName,
-            lastName: employees[i].lastName,
-            email: employees[i].email,
-            position: employees[i].position,
-            department: employees[i].department,
+            firstName: employees[i].firstName.trim(),
+            lastName: employees[i].lastName.trim(),
+            email: employees[i].email.trim().toLowerCase(),
+            position: employees[i].position.trim(),
+            department: employees[i].department.trim(),
             joinDate: new Date(employees[i].joinDate),
             status: "active",
             profileImage: null
           };
 
+          // Additional validation for date
+          if (isNaN(employeeData.joinDate.getTime())) {
+            throw new Error("Invalid date format");
+          }
+
           const validatedEmployee = insertEmployeeSchema.parse(employeeData);
+
+          // Check if email already exists in database
+          const existingEmployees = await storage.getEmployees();
+          if (existingEmployees.some(e => e.email.toLowerCase() === employeeData.email)) {
+            throw new Error(`Email ${employeeData.email} already exists`);
+          }
+
           await storage.createEmployee(validatedEmployee);
           results.successful++;
         } catch (error) {
