@@ -56,7 +56,7 @@ export function LeaveRequestForm({ onSubmit, employees }: LeaveRequestFormProps)
           name="employeeId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Employee</FormLabel>
+              <FormLabel>Employee <span className="text-red-500">*</span></FormLabel>
               <Select
                 onValueChange={(value) => field.onChange(Number(value))}
                 value={field.value ? String(field.value) : undefined}
@@ -87,7 +87,7 @@ export function LeaveRequestForm({ onSubmit, employees }: LeaveRequestFormProps)
           name="type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Leave Type</FormLabel>
+              <FormLabel>Leave Type <span className="text-red-500">*</span></FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
@@ -113,7 +113,7 @@ export function LeaveRequestForm({ onSubmit, employees }: LeaveRequestFormProps)
             name="startDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Start Date</FormLabel>
+                <FormLabel>Start Date <span className="text-red-500">*</span></FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>
@@ -127,7 +127,7 @@ export function LeaveRequestForm({ onSubmit, employees }: LeaveRequestFormProps)
             name="endDate"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>End Date</FormLabel>
+                <FormLabel>End Date <span className="text-red-500">*</span></FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>
@@ -142,7 +142,7 @@ export function LeaveRequestForm({ onSubmit, employees }: LeaveRequestFormProps)
           name="reason"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Reason</FormLabel>
+              <FormLabel>Reason <span className="text-red-500">*</span></FormLabel>
               <FormControl>
                 <Textarea
                   {...field}
@@ -154,7 +154,13 @@ export function LeaveRequestForm({ onSubmit, employees }: LeaveRequestFormProps)
           )}
         />
 
-        <Button type="submit">Submit Request</Button>
+        <Button 
+          type="submit" 
+          className="w-full transition-all hover:shadow-lg"
+          disabled={!form.formState.isValid || form.formState.isSubmitting}
+        >
+          {form.formState.isSubmitting ? "Submitting..." : "Submit Request"}
+        </Button>
       </form>
     </Form>
   );

@@ -89,7 +89,29 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({ id: tru
   profileImage: z.string().nullable(),
 });
 
-export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true });
+// Update the leave schema with more specific validation
+export const insertLeaveSchema = createInsertSchema(leaves).omit({ id: true }).extend({
+  employeeId: z.number({
+    required_error: "Employee is required",
+    invalid_type_error: "Invalid employee selection",
+  }),
+  startDate: z.string({
+    required_error: "Start date is required",
+  }).min(1, "Start date is required"),
+  endDate: z.string({
+    required_error: "End date is required",
+  }).min(1, "End date is required"),
+  type: z.string({
+    required_error: "Leave type is required",
+  }).min(1, "Leave type is required"),
+  reason: z.string({
+    required_error: "Reason is required",
+  }).min(1, "Please provide a reason for your leave request"),
+  status: z.enum(["pending", "approved", "rejected"], {
+    required_error: "Status is required",
+  }).default("pending"),
+});
+
 export const insertEvaluationSchema = createInsertSchema(evaluations).omit({ id: true });
 export const insertResumeSchema = createInsertSchema(resumes).omit({ 
   id: true, 
