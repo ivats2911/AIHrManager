@@ -15,8 +15,26 @@ interface AIFeedback {
   recommendation: string;
 }
 
+interface EducationEntry {
+  degree: string;
+  institution: string;
+  year: number;
+}
+
+interface ExperienceEntry {
+  title: string;
+  company: string;
+  years: number;
+}
+
+interface ResumeWithTypedFeedback extends Resume {
+  aiFeedback: AIFeedback | null;
+  education: EducationEntry[];
+  experience: ExperienceEntry[];
+}
+
 export default function ResumeScreening() {
-  const { data: resumes, isLoading } = useQuery<Resume[]>({
+  const { data: resumes, isLoading } = useQuery<ResumeWithTypedFeedback[]>({
     queryKey: ["/api/resumes"],
   });
 
@@ -114,7 +132,7 @@ export default function ResumeScreening() {
                             Education
                           </h4>
                           <div className="space-y-2">
-                            {(resume.education || []).map((edu, i) => (
+                            {resume.education?.map((edu, i) => (
                               <div key={i} className="text-sm">
                                 <div className="font-medium">{edu.degree}</div>
                                 <div className="text-muted-foreground">
@@ -131,7 +149,7 @@ export default function ResumeScreening() {
                             Experience
                           </h4>
                           <div className="space-y-2">
-                            {(resume.experience || []).map((exp, i) => (
+                            {resume.experience?.map((exp, i) => (
                               <div key={i} className="text-sm">
                                 <div className="font-medium">{exp.title}</div>
                                 <div className="text-muted-foreground">
@@ -158,7 +176,7 @@ export default function ResumeScreening() {
                       <div>
                         <h4 className="font-semibold text-sm text-primary mb-2">Key Strengths</h4>
                         <ul className="list-disc pl-4 text-sm space-y-1">
-                          {(resume.aiFeedback as AIFeedback).strengths.map((strength, i) => (
+                          {resume.aiFeedback.strengths.map((strength, i) => (
                             <li key={i}>{strength}</li>
                           ))}
                         </ul>
@@ -167,7 +185,7 @@ export default function ResumeScreening() {
                       <div>
                         <h4 className="font-semibold text-sm text-primary mb-2">Areas for Improvement</h4>
                         <ul className="list-disc pl-4 text-sm space-y-1 text-muted-foreground">
-                          {(resume.aiFeedback as AIFeedback).weaknesses.map((weakness, i) => (
+                          {resume.aiFeedback.weaknesses.map((weakness, i) => (
                             <li key={i}>{weakness}</li>
                           ))}
                         </ul>
@@ -176,7 +194,7 @@ export default function ResumeScreening() {
                       <div>
                         <h4 className="font-semibold text-sm text-primary mb-2">AI Recommendation</h4>
                         <p className="text-sm text-muted-foreground">
-                          {(resume.aiFeedback as AIFeedback).recommendation}
+                          {resume.aiFeedback.recommendation}
                         </p>
                       </div>
                     </div>
