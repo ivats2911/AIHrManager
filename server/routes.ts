@@ -175,6 +175,8 @@ export async function registerRoutes(app: Express) {
     try {
       const { resumeText, jobListingId } = req.body;
 
+      console.log("Starting resume analysis with text:", resumeText?.slice(0, 100) + "...");
+
       if (!resumeText || !jobListingId) {
         return res.status(400).json({ message: "Resume text and job listing ID are required" });
       }
@@ -196,7 +198,7 @@ export async function registerRoutes(app: Express) {
 
       console.log("Starting AI analysis for resume with job matching");
       const analysis = await analyzeResumeEnhanced(resumeText, jobDescription);
-      console.log("AI analysis completed");
+      console.log("AI analysis completed successfully:", analysis?.score);
 
       res.json({
         analysis,
@@ -214,6 +216,7 @@ export async function registerRoutes(app: Express) {
   // Enhanced Resume Submission Route
   app.post("/api/resumes", async (req, res) => {
     try {
+      console.log("Received resume submission:", req.body);
       const resume = insertResumeSchema.parse(req.body);
       const created = await storage.createResume(resume);
       console.log("Resume created:", created.id);
@@ -236,7 +239,7 @@ export async function registerRoutes(app: Express) {
 
         console.log("Starting AI analysis for resume:", created.id);
         const analysis = await analyzeResumeEnhanced(resume.resumeText, jobDescription);
-        console.log("AI analysis completed for resume:", created.id);
+        console.log("AI analysis completed for resume:", created.id, "Score:", analysis?.score);
 
         const updated = await storage.updateResumeAIAnalysis(
           created.id,
