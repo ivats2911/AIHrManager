@@ -29,10 +29,10 @@ interface ExperienceEntry {
 
 interface ResumeWithTypedFeedback extends Resume {
   aiFeedback: AIFeedback | null;
-  education: EducationEntry[];
-  experience: ExperienceEntry[];
-  suggestedQuestions?: string[];
-  parsedSkills?: string[];
+  education: EducationEntry[] | null;
+  experience: ExperienceEntry[] | null;
+  suggestedQuestions: string[] | null;
+  parsedSkills: string[] | null;
 }
 
 export default function ResumeScreening() {
@@ -112,19 +112,21 @@ export default function ResumeScreening() {
                   </div>
 
                   <div className="space-y-6">
-                    <div>
-                      <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
-                        <List className="h-4 w-4" />
-                        Identified Skills
-                      </h4>
-                      <div className="flex flex-wrap gap-2">
-                        {resume.parsedSkills?.map((skill, i) => (
-                          <Badge key={i} variant="secondary">
-                            {skill}
-                          </Badge>
-                        ))}
+                    {resume.parsedSkills && resume.parsedSkills.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
+                          <List className="h-4 w-4" />
+                          Identified Skills
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {resume.parsedSkills.map((skill, i) => (
+                            <Badge key={i} variant="secondary">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className="grid gap-4 md:grid-cols-2">
                       {resume.education && resume.education.length > 0 && (
@@ -180,23 +182,27 @@ export default function ResumeScreening() {
                       </div>
                     )}
 
-                    <div>
-                      <h4 className="font-semibold text-sm text-primary mb-2">Key Strengths</h4>
-                      <ul className="list-disc pl-4 text-sm space-y-1">
-                        {resume.aiFeedback.strengths.map((strength, i) => (
-                          <li key={i}>{strength}</li>
-                        ))}
-                      </ul>
-                    </div>
+                    {resume.aiFeedback && resume.aiFeedback.strengths && resume.aiFeedback.strengths.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm text-primary mb-2">Key Strengths</h4>
+                        <ul className="list-disc pl-4 text-sm space-y-1">
+                          {resume.aiFeedback.strengths.map((strength, i) => (
+                            <li key={i}>{strength}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
-                    <div>
-                      <h4 className="font-semibold text-sm text-primary mb-2">Areas for Improvement</h4>
-                      <ul className="list-disc pl-4 text-sm space-y-1 text-muted-foreground">
-                        {resume.aiFeedback.weaknesses.map((weakness, i) => (
-                          <li key={i}>{weakness}</li>
-                        ))}
-                      </ul>
-                    </div>
+                    {resume.aiFeedback && resume.aiFeedback.weaknesses && resume.aiFeedback.weaknesses.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-sm text-primary mb-2">Areas for Improvement</h4>
+                        <ul className="list-disc pl-4 text-sm space-y-1 text-muted-foreground">
+                          {resume.aiFeedback.weaknesses.map((weakness, i) => (
+                            <li key={i}>{weakness}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
                     <div>
                       <h4 className="font-semibold text-sm text-primary mb-2">AI Recommendation</h4>
