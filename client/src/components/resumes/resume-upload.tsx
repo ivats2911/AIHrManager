@@ -23,7 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Upload } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Loader2, Upload, CheckCircle2, XCircle } from "lucide-react";
 import type { JobListing } from "@shared/schema";
 import { z } from "zod";
 
@@ -36,8 +37,32 @@ const formSchema = insertResumeSchema.extend({
   jobListingId: z.number().nullable(),
 });
 
+interface UploadStage {
+  id: string;
+  title: string;
+  status: 'idle' | 'loading' | 'complete' | 'error';
+  description?: string;
+}
+
 export function ResumeUpload() {
   const [isUploading, setIsUploading] = useState(false);
+  const [stages, setStages] = useState<UploadStage[]>([
+    {
+      id: 'validation',
+      title: 'Resume Validation',
+      status: 'idle',
+    },
+    {
+      id: 'upload',
+      title: 'Upload Resume',
+      status: 'idle',
+    },
+    {
+      id: 'analysis',
+      title: 'AI Analysis',
+      status: 'idle',
+    },
+  ]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -59,18 +84,37 @@ export function ResumeUpload() {
     },
   });
 
-  async function onSubmit(data: z.infer<typeof formSchema>) {
-    if (!data.resumeText.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Resume content cannot be empty",
-      });
-      return;
-    }
+  const updateStage = (stageId: string, updates: Partial<UploadStage>) => {
+    setStages(current =>
+      current.map(stage =>
+        stage.id === stageId ? { ...stage, ...updates } : stage
+      )
+    );
+  };
 
+  const resetStages = () => {
+    setStages(current =>
+      current.map(stage => ({ ...stage, status: 'idle', description: undefined }))
+    );
+  };
+
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    resetStages();
     setIsUploading(true);
+
     try {
+      // Validation stage
+      updateStage('validation', { status: 'loading' });
+      if (!data.resumeText.trim()) {
+        throw new Error("Resume content cannot be empty");
+      }
+      updateStage('validation', { 
+        status: 'complete',
+        description: 'Resume content validated successfully'
+      });
+
+      // Upload stage
+      updateStage('upload', { status: 'loading' });
       console.log("Submitting resume data:", data);
       const res = await fetch("/api/resumes", {
         method: "POST",
@@ -87,16 +131,31 @@ export function ResumeUpload() {
         throw new Error(errorData.message || "Failed to upload resume");
       }
 
+      updateStage('upload', { 
+        status: 'complete',
+        description: 'Resume uploaded successfully'
+      });
+
+      // Analysis stage
+      updateStage('analysis', { status: 'loading' });
       const result = await res.json();
       console.log("Resume upload response:", result);
 
       if (result.aiScore === null || result.aiFeedback?.error) {
+        updateStage('analysis', { 
+          status: 'error',
+          description: 'AI analysis failed. Please try again.'
+        });
         toast({
           variant: "destructive",
           title: "Analysis Failed",
           description: "The AI analysis could not be completed. Please try again later.",
         });
       } else {
+        updateStage('analysis', { 
+          status: 'complete',
+          description: 'AI analysis completed successfully'
+        });
         queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
         form.reset();
         toast({
@@ -106,6 +165,13 @@ export function ResumeUpload() {
       }
     } catch (error) {
       console.error("Resume upload error:", error);
+      const currentStage = stages.find(s => s.status === 'loading');
+      if (currentStage) {
+        updateStage(currentStage.id, { 
+          status: 'error',
+          description: error instanceof Error ? error.message : "An error occurred"
+        });
+      }
       toast({
         variant: "destructive",
         title: "Error",
@@ -227,6 +293,57 @@ export function ResumeUpload() {
                 </FormItem>
               )}
             />
+
+            {/* Progress Visualization */}
+            {(isUploading || stages.some(s => s.status !== 'idle')) && (
+              <div className="space-y-4 mt-4 p-4 bg-muted rounded-lg">
+                <h3 className="font-semibold">Upload Progress</h3>
+                <div className="space-y-3">
+                  {stages.map((stage) => (
+                    <div key={stage.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          {stage.status === 'loading' && (
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          )}
+                          {stage.status === 'complete' && (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          )}
+                          {stage.status === 'error' && (
+                            <XCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <span className="text-sm font-medium">{stage.title}</span>
+                        </div>
+                        {stage.status !== 'idle' && (
+                          <span className={`text-xs ${
+                            stage.status === 'error' ? 'text-red-500' : 
+                            stage.status === 'complete' ? 'text-green-500' : 
+                            'text-muted-foreground'
+                          }`}>
+                            {stage.status === 'loading' ? 'Processing...' : 
+                             stage.status === 'complete' ? 'Completed' : 
+                             'Failed'}
+                          </span>
+                        )}
+                      </div>
+                      {stage.description && (
+                        <p className="text-xs text-muted-foreground ml-6">
+                          {stage.description}
+                        </p>
+                      )}
+                      {stage.status !== 'idle' && (
+                        <Progress 
+                          value={stage.status === 'complete' ? 100 : 
+                                stage.status === 'error' ? 100 : 
+                                stage.status === 'loading' ? undefined : 0} 
+                          className="h-1"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <Button 
               type="submit" 
