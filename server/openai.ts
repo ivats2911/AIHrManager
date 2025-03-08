@@ -23,7 +23,7 @@ export async function analyzeTeamCompatibility(
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -117,7 +117,7 @@ export async function analyzePerformanceData(
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -191,7 +191,7 @@ export async function analyzeResume(resumeText: string, position: string): Promi
   try {
     console.log("Starting resume analysis with OpenAI...");
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
@@ -266,7 +266,7 @@ export async function analyzeResumeEnhanced(
   try {
     console.log("Starting enhanced resume analysis with OpenAI...");
     const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-4",
       messages: [
         {
           role: "system",
