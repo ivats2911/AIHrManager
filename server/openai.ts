@@ -2,7 +2,6 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 export async function analyzeTeamCompatibility(
   employees: Array<{
     id: number;
@@ -24,7 +23,7 @@ export async function analyzeTeamCompatibility(
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4-turbo-preview",
       messages: [
         {
           role: "system",
@@ -118,7 +117,7 @@ export async function analyzePerformanceData(
 }> {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4-turbo-preview",
       messages: [
         {
           role: "system",
@@ -192,7 +191,7 @@ export async function analyzeResume(resumeText: string, position: string): Promi
   try {
     console.log("Starting resume analysis with OpenAI...");
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4-turbo-preview",
       messages: [
         {
           role: "system",
@@ -267,7 +266,7 @@ export async function analyzeResumeEnhanced(
   try {
     console.log("Starting enhanced resume analysis with OpenAI...");
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4-turbo-preview",
       messages: [
         {
           role: "system",
