@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertResumeSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -23,8 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Loader2, Upload, CheckCircle2, XCircle } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import type { JobListing } from "@shared/schema";
 import { z } from "zod";
 
@@ -34,35 +33,10 @@ const formSchema = insertResumeSchema.extend({
   email: z.string().email("Invalid email").min(1, "Email is required"),
   resumeText: z.string().min(50, "Resume content must be at least 50 characters"),
   position: z.string().min(1, "Position is required"),
-  jobListingId: z.number().nullable(),
 });
-
-interface UploadStage {
-  id: string;
-  title: string;
-  status: 'idle' | 'loading' | 'complete' | 'error';
-  description?: string;
-}
 
 export function ResumeUpload() {
   const [isUploading, setIsUploading] = useState(false);
-  const [stages, setStages] = useState<UploadStage[]>([
-    {
-      id: 'validation',
-      title: 'Resume Validation',
-      status: 'idle',
-    },
-    {
-      id: 'upload',
-      title: 'Upload Resume',
-      status: 'idle',
-    },
-    {
-      id: 'analysis',
-      title: 'AI Analysis',
-      status: 'idle',
-    },
-  ]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -84,69 +58,45 @@ export function ResumeUpload() {
     },
   });
 
-  const updateStage = (stageId: string, updates: Partial<UploadStage>) => {
-    setStages(current =>
-      current.map(stage =>
-        stage.id === stageId ? { ...stage, ...updates } : stage
-      )
-    );
-  };
+  async function onSubmit(data: any) {
+    if (!data.resumeText.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Resume content cannot be empty",
+      });
+      return;
+    }
 
-  const resetStages = () => {
-    setStages(current =>
-      current.map(stage => ({ ...stage, status: 'idle', description: undefined }))
-    );
-  };
-
-  const { mutate: uploadResume } = useMutation({
-    mutationFn: async (data: z.infer<typeof formSchema>) => {
-      const response = await fetch("/api/resumes", {
+    setIsUploading(true);
+    try {
+      console.log("Submitting resume data:", data);
+      const res = await fetch("/api/resumes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
+          // Convert jobListingId to number if it exists
           jobListingId: data.jobListingId ? Number(data.jobListingId) : null,
           submittedAt: new Date().toISOString(),
         }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!res.ok) {
+        const errorData = await res.json();
         throw new Error(errorData.message || "Failed to upload resume");
       }
 
-      return response.json();
-    },
-    onMutate: () => {
-      resetStages();
-      setIsUploading(true);
-      updateStage('validation', { status: 'loading' });
-    },
-    onSuccess: (result) => {
-      updateStage('validation', {
-        status: 'complete',
-        description: 'Resume content validated successfully'
-      });
-      updateStage('upload', { 
-        status: 'complete',
-        description: 'Resume uploaded successfully'
-      });
+      const result = await res.json();
+      console.log("Resume upload response:", result);
 
       if (result.aiScore === null || result.aiFeedback?.error) {
-        updateStage('analysis', { 
-          status: 'error',
-          description: result.aiFeedback?.error || 'AI analysis failed. Please try again.'
-        });
         toast({
           variant: "destructive",
           title: "Analysis Failed",
-          description: result.aiFeedback?.error || "The AI analysis could not be completed. Please try again later.",
+          description: "The AI analysis could not be completed. Please try again later.",
         });
       } else {
-        updateStage('analysis', { 
-          status: 'complete',
-          description: 'AI analysis completed successfully'
-        });
         queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
         form.reset();
         toast({
@@ -154,25 +104,17 @@ export function ResumeUpload() {
           description: "Resume uploaded and analyzed successfully",
         });
       }
-    },
-    onError: (error: Error) => {
-      const currentStage = stages.find(s => s.status === 'loading');
-      if (currentStage) {
-        updateStage(currentStage.id, { 
-          status: 'error',
-          description: error.message
-        });
-      }
+    } catch (error) {
+      console.error("Resume upload error:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to upload resume",
+        description: error instanceof Error ? error.message : "Failed to upload resume",
       });
-    },
-    onSettled: () => {
+    } finally {
       setIsUploading(false);
     }
-  });
+  }
 
   return (
     <Card className="border-2 border-primary/20">
@@ -184,14 +126,14 @@ export function ResumeUpload() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => uploadResume(data))} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="candidateName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Candidate Name <span className="text-red-500">*</span></FormLabel>
+                    <FormLabel>Candidate Name *</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="John Doe" className="bg-background" />
                     </FormControl>
@@ -205,7 +147,7 @@ export function ResumeUpload() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email <span className="text-red-500">*</span></FormLabel>
+                    <FormLabel>Email *</FormLabel>
                     <FormControl>
                       <Input {...field} type="email" placeholder="john@example.com" className="bg-background" />
                     </FormControl>
@@ -231,22 +173,14 @@ export function ResumeUpload() {
               <FormField
                 control={form.control}
                 name="jobListingId"
-                render={({ field }) => (
+                render={({ field: { onChange, value, ...field } }) => (
                   <FormItem>
-                    <FormLabel>Apply for Position <span className="text-red-500">*</span></FormLabel>
+                    <FormLabel>Apply for Position *</FormLabel>
                     <Select
-                      onValueChange={(value) => {
-                        const numValue = value ? parseInt(value, 10) : null;
-                        field.onChange(numValue);
-                        // Also update the position field based on selected job
-                        if (numValue) {
-                          const job = jobListings.find(j => j.id === numValue);
-                          if (job) {
-                            form.setValue("position", job.title);
-                          }
-                        }
+                      onValueChange={(newValue) => {
+                        onChange(newValue ? Number(newValue) : null);
                       }}
-                      value={field.value?.toString()}
+                      value={value?.toString() || undefined}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -272,7 +206,7 @@ export function ResumeUpload() {
               name="resumeText"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Resume Content <span className="text-red-500">*</span></FormLabel>
+                  <FormLabel>Resume Content *</FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
@@ -286,60 +220,9 @@ export function ResumeUpload() {
               )}
             />
 
-            {/* Progress Visualization */}
-            {(isUploading || stages.some(s => s.status !== 'idle')) && (
-              <div className="space-y-4 mt-4 p-4 bg-muted rounded-lg">
-                <h3 className="font-semibold">Upload Progress</h3>
-                <div className="space-y-3">
-                  {stages.map((stage) => (
-                    <div key={stage.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {stage.status === 'loading' && (
-                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                          )}
-                          {stage.status === 'complete' && (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          )}
-                          {stage.status === 'error' && (
-                            <XCircle className="h-4 w-4 text-red-500" />
-                          )}
-                          <span className="text-sm font-medium">{stage.title}</span>
-                        </div>
-                        {stage.status !== 'idle' && (
-                          <span className={`text-xs ${
-                            stage.status === 'error' ? 'text-red-500' : 
-                            stage.status === 'complete' ? 'text-green-500' : 
-                            'text-muted-foreground'
-                          }`}>
-                            {stage.status === 'loading' ? 'Processing...' : 
-                             stage.status === 'complete' ? 'Completed' : 
-                             'Failed'}
-                          </span>
-                        )}
-                      </div>
-                      {stage.description && (
-                        <p className="text-xs text-muted-foreground ml-6">
-                          {stage.description}
-                        </p>
-                      )}
-                      {stage.status !== 'idle' && (
-                        <Progress 
-                          value={stage.status === 'complete' ? 100 : 
-                                stage.status === 'error' ? 100 : 
-                                stage.status === 'loading' ? undefined : 0} 
-                          className="h-1"
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <Button 
               type="submit" 
-              disabled={isUploading || !form.formState.isValid}
+              disabled={isUploading}
               className="w-full md:w-auto"
             >
               {isUploading ? (

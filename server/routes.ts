@@ -18,9 +18,9 @@ export async function registerRoutes(app: Express) {
       });
     }
 
-    if (err.name === 'OpenAIError' || err.message.includes('OpenAI')) {
+    if (err.name === 'OpenAIError') {
       return res.status(503).json({
-        message: "AI processing service temporarily unavailable. Please check the API key configuration.",
+        message: "AI processing service temporarily unavailable",
         retry: true
       });
     }
@@ -175,17 +175,8 @@ export async function registerRoutes(app: Express) {
     try {
       const { resumeText, jobListingId } = req.body;
 
-      console.log("Starting resume analysis with text:", resumeText?.slice(0, 100) + "...");
-
       if (!resumeText || !jobListingId) {
         return res.status(400).json({ message: "Resume text and job listing ID are required" });
-      }
-
-      if (!process.env.OPENAI_API_KEY) {
-        return res.status(503).json({ 
-          message: "OpenAI API key is not configured. Please check the server configuration.",
-          retry: false
-        });
       }
 
       // Get job listing details
@@ -205,7 +196,7 @@ export async function registerRoutes(app: Express) {
 
       console.log("Starting AI analysis for resume with job matching");
       const analysis = await analyzeResumeEnhanced(resumeText, jobDescription);
-      console.log("AI analysis completed successfully:", analysis?.score);
+      console.log("AI analysis completed");
 
       res.json({
         analysis,
@@ -215,8 +206,7 @@ export async function registerRoutes(app: Express) {
       console.error("Resume analysis failed:", error);
       res.status(500).json({
         message: "Failed to analyze resume",
-        error: error instanceof Error ? error.message : "Unknown error",
-        retry: true
+        error: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
@@ -224,7 +214,6 @@ export async function registerRoutes(app: Express) {
   // Enhanced Resume Submission Route
   app.post("/api/resumes", async (req, res) => {
     try {
-      console.log("Received resume submission:", req.body);
       const resume = insertResumeSchema.parse(req.body);
       const created = await storage.createResume(resume);
       console.log("Resume created:", created.id);
@@ -247,7 +236,7 @@ export async function registerRoutes(app: Express) {
 
         console.log("Starting AI analysis for resume:", created.id);
         const analysis = await analyzeResumeEnhanced(resume.resumeText, jobDescription);
-        console.log("AI analysis completed for resume:", created.id, "Score:", analysis?.score);
+        console.log("AI analysis completed for resume:", created.id);
 
         const updated = await storage.updateResumeAIAnalysis(
           created.id,
