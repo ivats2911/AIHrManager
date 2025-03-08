@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertResumeSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -98,25 +98,9 @@ export function ResumeUpload() {
     );
   };
 
-  async function onSubmit(data: z.infer<typeof formSchema>) {
-    resetStages();
-    setIsUploading(true);
-
-    try {
-      // Validation stage
-      updateStage('validation', { status: 'loading' });
-      if (!data.resumeText.trim()) {
-        throw new Error("Resume content cannot be empty");
-      }
-      updateStage('validation', { 
-        status: 'complete',
-        description: 'Resume content validated successfully'
-      });
-
-      // Upload stage
-      updateStage('upload', { status: 'loading' });
-      console.log("Submitting resume data:", data);
-      const res = await fetch("/api/resumes", {
+  const { mutate: uploadResume } = useMutation({
+    mutationFn: async (data: z.infer<typeof formSchema>) => {
+      const response = await fetch("/api/resumes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -126,30 +110,37 @@ export function ResumeUpload() {
         }),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
+      if (!response.ok) {
+        const errorData = await response.json();
         throw new Error(errorData.message || "Failed to upload resume");
       }
 
+      return response.json();
+    },
+    onMutate: () => {
+      resetStages();
+      setIsUploading(true);
+      updateStage('validation', { status: 'loading' });
+    },
+    onSuccess: (result) => {
+      updateStage('validation', {
+        status: 'complete',
+        description: 'Resume content validated successfully'
+      });
       updateStage('upload', { 
         status: 'complete',
         description: 'Resume uploaded successfully'
       });
 
-      // Analysis stage
-      updateStage('analysis', { status: 'loading' });
-      const result = await res.json();
-      console.log("Resume upload response:", result);
-
       if (result.aiScore === null || result.aiFeedback?.error) {
         updateStage('analysis', { 
           status: 'error',
-          description: 'AI analysis failed. Please try again.'
+          description: result.aiFeedback?.error || 'AI analysis failed. Please try again.'
         });
         toast({
           variant: "destructive",
           title: "Analysis Failed",
-          description: "The AI analysis could not be completed. Please try again later.",
+          description: result.aiFeedback?.error || "The AI analysis could not be completed. Please try again later.",
         });
       } else {
         updateStage('analysis', { 
@@ -163,24 +154,25 @@ export function ResumeUpload() {
           description: "Resume uploaded and analyzed successfully",
         });
       }
-    } catch (error) {
-      console.error("Resume upload error:", error);
+    },
+    onError: (error: Error) => {
       const currentStage = stages.find(s => s.status === 'loading');
       if (currentStage) {
         updateStage(currentStage.id, { 
           status: 'error',
-          description: error instanceof Error ? error.message : "An error occurred"
+          description: error.message
         });
       }
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to upload resume",
+        description: error.message || "Failed to upload resume",
       });
-    } finally {
+    },
+    onSettled: () => {
       setIsUploading(false);
     }
-  }
+  });
 
   return (
     <Card className="border-2 border-primary/20">
@@ -192,7 +184,7 @@ export function ResumeUpload() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit((data) => uploadResume(data))} className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
