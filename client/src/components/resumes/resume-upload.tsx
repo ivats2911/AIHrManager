@@ -33,6 +33,7 @@ const formSchema = insertResumeSchema.extend({
   email: z.string().email("Invalid email").min(1, "Email is required"),
   resumeText: z.string().min(50, "Resume content must be at least 50 characters"),
   position: z.string().min(1, "Position is required"),
+  jobListingId: z.number().nullable(),
 });
 
 export function ResumeUpload() {
@@ -58,7 +59,7 @@ export function ResumeUpload() {
     },
   });
 
-  async function onSubmit(data: any) {
+  async function onSubmit(data: z.infer<typeof formSchema>) {
     if (!data.resumeText.trim()) {
       toast({
         variant: "destructive",
@@ -76,7 +77,6 @@ export function ResumeUpload() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          // Convert jobListingId to number if it exists
           jobListingId: data.jobListingId ? Number(data.jobListingId) : null,
           submittedAt: new Date().toISOString(),
         }),
@@ -133,7 +133,7 @@ export function ResumeUpload() {
                 name="candidateName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Candidate Name *</FormLabel>
+                    <FormLabel>Candidate Name <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="John Doe" className="bg-background" />
                     </FormControl>
@@ -147,7 +147,7 @@ export function ResumeUpload() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email *</FormLabel>
+                    <FormLabel>Email <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <Input {...field} type="email" placeholder="john@example.com" className="bg-background" />
                     </FormControl>
@@ -173,14 +173,22 @@ export function ResumeUpload() {
               <FormField
                 control={form.control}
                 name="jobListingId"
-                render={({ field: { onChange, value, ...field } }) => (
+                render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Apply for Position *</FormLabel>
+                    <FormLabel>Apply for Position <span className="text-red-500">*</span></FormLabel>
                     <Select
-                      onValueChange={(newValue) => {
-                        onChange(newValue ? Number(newValue) : null);
+                      onValueChange={(value) => {
+                        const numValue = value ? parseInt(value, 10) : null;
+                        field.onChange(numValue);
+                        // Also update the position field based on selected job
+                        if (numValue) {
+                          const job = jobListings.find(j => j.id === numValue);
+                          if (job) {
+                            form.setValue("position", job.title);
+                          }
+                        }
                       }}
-                      value={value?.toString() || undefined}
+                      value={field.value?.toString()}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -206,7 +214,7 @@ export function ResumeUpload() {
               name="resumeText"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Resume Content *</FormLabel>
+                  <FormLabel>Resume Content <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
@@ -222,7 +230,7 @@ export function ResumeUpload() {
 
             <Button 
               type="submit" 
-              disabled={isUploading}
+              disabled={isUploading || !form.formState.isValid}
               className="w-full md:w-auto"
             >
               {isUploading ? (
