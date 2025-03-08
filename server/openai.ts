@@ -1,7 +1,11 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY,
+  maxRetries: 3,
+  timeout: 30000
+});
 
 export async function analyzeTeamCompatibility(
   employees: Array<{
@@ -262,6 +266,10 @@ export async function analyzeResumeEnhanced(
   education: Array<{ degree: string; institution: string; year: number }>;
 }> {
   try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OpenAI API key is not configured");
+    }
+
     console.log("Starting resume analysis with OpenAI...");
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -298,6 +306,7 @@ Do not include any other text before or after the JSON.`
       ],
       temperature: 0.7,
       response_format: { type: "json_object" },
+      max_tokens: 2000
     });
 
     const content = response.choices[0].message.content;
@@ -332,6 +341,12 @@ Do not include any other text before or after the JSON.`
   } catch (error: unknown) {
     console.error("Resume analysis failed:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+
+    // Throw a more detailed error
+    if (error instanceof Error && error.message.includes("401")) {
+      throw new Error("OpenAI API authentication failed. Please check your API key.");
+    }
+
     throw new Error("Failed to analyze resume: " + errorMessage);
   }
 }

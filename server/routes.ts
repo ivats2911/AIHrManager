@@ -18,9 +18,9 @@ export async function registerRoutes(app: Express) {
       });
     }
 
-    if (err.name === 'OpenAIError') {
+    if (err.name === 'OpenAIError' || err.message.includes('OpenAI')) {
       return res.status(503).json({
-        message: "AI processing service temporarily unavailable",
+        message: "AI processing service temporarily unavailable. Please check the API key configuration.",
         retry: true
       });
     }
@@ -181,6 +181,13 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ message: "Resume text and job listing ID are required" });
       }
 
+      if (!process.env.OPENAI_API_KEY) {
+        return res.status(503).json({ 
+          message: "OpenAI API key is not configured. Please check the server configuration.",
+          retry: false
+        });
+      }
+
       // Get job listing details
       const jobListing = await storage.getJobListing(jobListingId);
       if (!jobListing) {
@@ -208,7 +215,8 @@ export async function registerRoutes(app: Express) {
       console.error("Resume analysis failed:", error);
       res.status(500).json({
         message: "Failed to analyze resume",
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
+        retry: true
       });
     }
   });
