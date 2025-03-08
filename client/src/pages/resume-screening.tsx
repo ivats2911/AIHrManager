@@ -31,6 +31,8 @@ interface ResumeWithTypedFeedback extends Resume {
   aiFeedback: AIFeedback | null;
   education: EducationEntry[];
   experience: ExperienceEntry[];
+  suggestedQuestions?: string[];
+  parsedSkills?: string[];
 }
 
 export default function ResumeScreening() {
@@ -92,7 +94,7 @@ export default function ResumeScreening() {
               </Badge>
             </CardHeader>
             <CardContent>
-              {resume.aiScore !== null && (
+              {resume.aiScore !== null && resume.aiFeedback && (
                 <div className="space-y-6">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
@@ -109,30 +111,30 @@ export default function ResumeScreening() {
                     </div>
                   </div>
 
-                  {resume.aiFeedback && (
-                    <div className="space-y-6">
-                      <div>
-                        <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
-                          <List className="h-4 w-4" />
-                          Identified Skills
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {(resume.parsedSkills || []).map((skill, i) => (
-                            <Badge key={i} variant="secondary">
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
+                        <List className="h-4 w-4" />
+                        Identified Skills
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {resume.parsedSkills?.map((skill, i) => (
+                          <Badge key={i} variant="secondary">
+                            {skill}
+                          </Badge>
+                        ))}
                       </div>
+                    </div>
 
-                      <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2">
+                      {resume.education && resume.education.length > 0 && (
                         <div>
                           <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
                             <School className="h-4 w-4" />
                             Education
                           </h4>
                           <div className="space-y-2">
-                            {resume.education?.map((edu, i) => (
+                            {resume.education.map((edu, i) => (
                               <div key={i} className="text-sm">
                                 <div className="font-medium">{edu.degree}</div>
                                 <div className="text-muted-foreground">
@@ -142,14 +144,16 @@ export default function ResumeScreening() {
                             ))}
                           </div>
                         </div>
+                      )}
 
+                      {resume.experience && resume.experience.length > 0 && (
                         <div>
                           <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
                             <Briefcase className="h-4 w-4" />
                             Experience
                           </h4>
                           <div className="space-y-2">
-                            {resume.experience?.map((exp, i) => (
+                            {resume.experience.map((exp, i) => (
                               <div key={i} className="text-sm">
                                 <div className="font-medium">{exp.title}</div>
                                 <div className="text-muted-foreground">
@@ -159,46 +163,48 @@ export default function ResumeScreening() {
                             ))}
                           </div>
                         </div>
-                      </div>
+                      )}
+                    </div>
 
+                    {resume.suggestedQuestions && resume.suggestedQuestions.length > 0 && (
                       <div>
                         <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
                           <MessagesSquare className="h-4 w-4" />
                           Suggested Interview Questions
                         </h4>
                         <ul className="list-disc pl-4 text-sm space-y-1">
-                          {(resume.suggestedQuestions || []).map((question, i) => (
+                          {resume.suggestedQuestions.map((question, i) => (
                             <li key={i}>{question}</li>
                           ))}
                         </ul>
                       </div>
+                    )}
 
-                      <div>
-                        <h4 className="font-semibold text-sm text-primary mb-2">Key Strengths</h4>
-                        <ul className="list-disc pl-4 text-sm space-y-1">
-                          {resume.aiFeedback.strengths.map((strength, i) => (
-                            <li key={i}>{strength}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-sm text-primary mb-2">Areas for Improvement</h4>
-                        <ul className="list-disc pl-4 text-sm space-y-1 text-muted-foreground">
-                          {resume.aiFeedback.weaknesses.map((weakness, i) => (
-                            <li key={i}>{weakness}</li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      <div>
-                        <h4 className="font-semibold text-sm text-primary mb-2">AI Recommendation</h4>
-                        <p className="text-sm text-muted-foreground">
-                          {resume.aiFeedback.recommendation}
-                        </p>
-                      </div>
+                    <div>
+                      <h4 className="font-semibold text-sm text-primary mb-2">Key Strengths</h4>
+                      <ul className="list-disc pl-4 text-sm space-y-1">
+                        {resume.aiFeedback.strengths.map((strength, i) => (
+                          <li key={i}>{strength}</li>
+                        ))}
+                      </ul>
                     </div>
-                  )}
+
+                    <div>
+                      <h4 className="font-semibold text-sm text-primary mb-2">Areas for Improvement</h4>
+                      <ul className="list-disc pl-4 text-sm space-y-1 text-muted-foreground">
+                        {resume.aiFeedback.weaknesses.map((weakness, i) => (
+                          <li key={i}>{weakness}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold text-sm text-primary mb-2">AI Recommendation</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {resume.aiFeedback.recommendation}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               )}
               <div className="mt-6 pt-4 border-t text-xs text-muted-foreground">
