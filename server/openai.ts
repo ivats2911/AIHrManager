@@ -190,6 +190,7 @@ export async function analyzeResume(resumeText: string, position: string): Promi
   };
 }> {
   try {
+    console.log("Starting resume analysis with OpenAI...");
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -213,6 +214,7 @@ Do not include any other text before or after the JSON.`
       response_format: { type: "json_object" },
     });
 
+    console.log("Received response from OpenAI");
     const content = response.choices[0].message.content;
     if (!content) {
       throw new Error("No content received from OpenAI");
@@ -227,6 +229,7 @@ Do not include any other text before or after the JSON.`
       !Array.isArray(result.weaknesses) || 
       typeof result.recommendation !== 'string'
     ) {
+      console.error("Invalid response structure:", result);
       throw new Error("Invalid response structure from AI");
     }
 
@@ -239,8 +242,8 @@ Do not include any other text before or after the JSON.`
       },
     };
   } catch (error: unknown) {
+    console.error("Resume analysis failed:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    console.error("Resume analysis failed:", errorMessage);
     throw new Error("Failed to analyze resume: " + errorMessage);
   }
 }
@@ -262,7 +265,7 @@ export async function analyzeResumeEnhanced(
   education: Array<{ degree: string; institution: string; year: number }>;
 }> {
   try {
-    console.log("Starting resume analysis with OpenAI...");
+    console.log("Starting enhanced resume analysis with OpenAI...");
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
@@ -300,12 +303,12 @@ Do not include any other text before or after the JSON.`
       response_format: { type: "json_object" },
     });
 
+    console.log("Received response from OpenAI");
     const content = response.choices[0].message.content;
     if (!content) {
       throw new Error("No content received from OpenAI");
     }
 
-    console.log("Received OpenAI response, parsing result...");
     const result = JSON.parse(content);
 
     // Validate the response structure

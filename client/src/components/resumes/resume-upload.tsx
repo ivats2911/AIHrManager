@@ -53,7 +53,7 @@ export function ResumeUpload() {
       phone: "",
       position: "",
       resumeText: "",
-      jobListingId: null,
+      jobListingId: undefined,
       submittedAt: new Date(),
     },
   });
@@ -77,7 +77,7 @@ export function ResumeUpload() {
         body: JSON.stringify({
           ...data,
           // Convert jobListingId to number if it exists
-          jobListingId: data.jobListingId ? Number(data.jobListingId) : null,
+          jobListingId: data.jobListingId ? Number(data.jobListingId) : undefined,
           submittedAt: new Date().toISOString(),
         }),
       });
@@ -94,7 +94,7 @@ export function ResumeUpload() {
         toast({
           variant: "destructive",
           title: "Analysis Failed",
-          description: "The AI analysis could not be completed. Please try again later.",
+          description: result.aiFeedback?.error || "The AI analysis could not be completed. Please try again later.",
         });
       } else {
         queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
@@ -133,7 +133,7 @@ export function ResumeUpload() {
                 name="candidateName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Candidate Name *</FormLabel>
+                    <FormLabel>Candidate Name <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="John Doe" className="bg-background" />
                     </FormControl>
@@ -147,7 +147,7 @@ export function ResumeUpload() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email *</FormLabel>
+                    <FormLabel>Email <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
                       <Input {...field} type="email" placeholder="john@example.com" className="bg-background" />
                     </FormControl>
@@ -175,12 +175,12 @@ export function ResumeUpload() {
                 name="jobListingId"
                 render={({ field: { onChange, value, ...field } }) => (
                   <FormItem>
-                    <FormLabel>Apply for Position *</FormLabel>
+                    <FormLabel>Apply for Position <span className="text-red-500">*</span></FormLabel>
                     <Select
                       onValueChange={(newValue) => {
-                        onChange(newValue ? Number(newValue) : null);
+                        onChange(newValue ? Number(newValue) : undefined);
                       }}
-                      value={value?.toString() || undefined}
+                      value={value?.toString()}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -206,7 +206,7 @@ export function ResumeUpload() {
               name="resumeText"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Resume Content *</FormLabel>
+                  <FormLabel>Resume Content <span className="text-red-500">*</span></FormLabel>
                   <FormControl>
                     <Textarea
                       {...field}
