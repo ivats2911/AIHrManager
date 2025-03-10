@@ -57,7 +57,15 @@ export function ResumeUpload() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log("Form submission started", {
+      values: {
+        ...values,
+        resumeText: values.resumeText.substring(0, 100) + "..."
+      }
+    });
+
     if (!form.formState.isValid) {
+      console.log("Form validation failed:", form.formState.errors);
       Object.entries(form.formState.errors).forEach(([key, value]) => {
         toast({
           variant: "destructive",
@@ -77,7 +85,7 @@ export function ResumeUpload() {
         submittedAt: new Date().toISOString(),
       };
 
-      console.log("Sending resume data:", {
+      console.log("Sending resume data to server:", {
         ...requestData,
         resumeText: requestData.resumeText.substring(0, 100) + "..."
       });
@@ -94,6 +102,7 @@ export function ResumeUpload() {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error("Server error response:", errorData);
         throw new Error(errorData.message || "Failed to upload resume");
       }
 
