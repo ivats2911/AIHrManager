@@ -15,13 +15,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Upload } from "lucide-react";
 import type { JobListing } from "@shared/schema";
@@ -39,10 +32,6 @@ export function ResumeUpload() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: jobListings = [] } = useQuery<JobListing[]>({
-    queryKey: ["/api/job-listings"],
-  });
-
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,39 +46,26 @@ export function ResumeUpload() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("Form submission started", {
-      values: {
-        ...values,
-        resumeText: values.resumeText.substring(0, 100) + "..."
-      }
-    });
+    try {
+      setIsUploading(true);
+      console.log("Form submission starting...", { formValues: values });
 
-    if (!form.formState.isValid) {
-      console.log("Form validation failed:", form.formState.errors);
-      Object.entries(form.formState.errors).forEach(([key, value]) => {
+      if (!values.resumeText || values.resumeText.length < 50) {
         toast({
           variant: "destructive",
           title: "Validation Error",
-          description: value.message,
+          description: "Resume content must be at least 50 characters",
         });
-      });
-      return;
-    }
+        setIsUploading(false);
+        return;
+      }
 
-    setIsUploading(true);
-
-    try {
       const requestData = {
         ...values,
-        jobListingId: values.jobListingId ? Number(values.jobListingId) : undefined,
         submittedAt: new Date().toISOString(),
       };
 
-      console.log("Sending resume data to server:", {
-        ...requestData,
-        resumeText: requestData.resumeText.substring(0, 100) + "..."
-      });
-
+      console.log("Sending request to /api/resumes...");
       const response = await fetch("/api/resumes", {
         method: "POST",
         headers: {
@@ -98,16 +74,13 @@ export function ResumeUpload() {
         body: JSON.stringify(requestData),
       });
 
-      console.log("Server response status:", response.status);
+      console.log("Received response:", { status: response.status });
+      const data = await response.json();
+      console.log("Response data:", data);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Server error response:", errorData);
-        throw new Error(errorData.message || "Failed to upload resume");
+        throw new Error(data.message || "Failed to upload resume");
       }
-
-      const result = await response.json();
-      console.log("Server response data:", result);
 
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
       form.reset();
@@ -167,6 +140,7 @@ export function ResumeUpload() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="phone"
@@ -183,30 +157,13 @@ export function ResumeUpload() {
 
               <FormField
                 control={form.control}
-                name="jobListingId"
+                name="position"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Apply for Position <span className="text-red-500">*</span></FormLabel>
-                    <Select
-                      onValueChange={(value) => field.onChange(value ? Number(value) : undefined)}
-                      value={field.value?.toString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a position" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {jobListings.map((job) => (
-                          <SelectItem
-                            key={job.id}
-                            value={job.id.toString()}
-                          >
-                            {job.title} - {job.department}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Position <span className="text-red-500">*</span></FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Software Engineer" />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
