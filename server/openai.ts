@@ -253,15 +253,13 @@ Provide a JSON response with exactly this format:
   "suggestedQuestions": ["question1", "question2", ...],
   "experience": [{"title": "job title", "company": "company name", "years": number}, ...],
   "education": [{"degree": "degree name", "institution": "school name", "year": number}, ...]
-}
-Do not include any other text before or after the JSON.`
+}`
         },
         {
           role: "user",
           content: `Job Description:\n${jobDescription}\n\nResume:\n${resumeText}`,
         },
       ],
-      temperature: 0.7,
       response_format: { type: "json_object" },
     });
 

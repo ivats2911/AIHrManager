@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { analyzeResumeWithGemini } from "./gemini";
+import { analyzeResumeEnhanced, analyzeTeamCompatibility, analyzePerformanceData } from "./openai";
 import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, insertJobListingSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { generateAndStoreInsights } from "./notifications";
@@ -187,9 +187,9 @@ export async function registerRoutes(app: Express) {
         Preferred Skills: ${jobListing.preferredSkills?.join(", ") || ""}
       `;
 
-      console.log("Starting Gemini analysis for resume with job matching");
-      const analysis = await analyzeResumeWithGemini(resumeText, jobDescription);
-      console.log("Gemini analysis completed");
+      console.log("Starting OpenAI analysis for resume with job matching");
+      const analysis = await analyzeResumeEnhanced(resumeText, jobDescription);
+      console.log("OpenAI analysis completed");
 
       res.json({
         analysis,
@@ -240,9 +240,9 @@ export async function registerRoutes(app: Express) {
           jobDescription = resume.position;
         }
 
-        console.log("Starting Gemini analysis for resume:", created.id);
-        const analysis = await analyzeResumeWithGemini(resume.resumeText, jobDescription);
-        console.log("Gemini analysis completed for resume:", created.id);
+        console.log("Starting OpenAI analysis for resume:", created.id);
+        const analysis = await analyzeResumeEnhanced(resume.resumeText, jobDescription);
+        console.log("OpenAI analysis completed for resume:", created.id);
 
         // Update resume with AI analysis results
         const updated = await storage.updateResumeAIAnalysis(
@@ -263,7 +263,7 @@ export async function registerRoutes(app: Express) {
         console.log("Resume updated with analysis:", updated.id);
         res.status(201).json(updated);
       } catch (analysisError) {
-        console.error("Gemini analysis failed for resume:", created.id, analysisError);
+        console.error("OpenAI analysis failed for resume:", created.id, analysisError);
 
         // Return the created resume even if analysis fails
         res.status(201).json({
