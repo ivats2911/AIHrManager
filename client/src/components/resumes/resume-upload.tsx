@@ -103,21 +103,12 @@ export function ResumeUpload() {
         return;
       }
 
-      if (result.aiFeedback?.error) {
-        console.error("AI analysis error:", result.aiFeedback.error);
-        toast({
-          variant: "destructive",
-          title: "Analysis Failed",
-          description: result.aiFeedback.error || "The AI analysis could not be completed. Please try again later.",
-        });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
-        form.reset();
-        toast({
-          title: "Success",
-          description: "Resume uploaded and analyzed successfully",
-        });
-      }
+      queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
+      form.reset();
+      toast({
+        title: "Success",
+        description: "Resume uploaded and analyzed successfully",
+      });
     } catch (error) {
       console.error("Resume upload error:", error);
       toast({
@@ -203,7 +194,10 @@ export function ResumeUpload() {
                       </FormControl>
                       <SelectContent>
                         {jobListings.map((job) => (
-                          <SelectItem key={job.id} value={job.id.toString()}>
+                          <SelectItem
+                            key={job.id}
+                            value={job.id.toString()}
+                          >
                             {job.title} - {job.department}
                           </SelectItem>
                         ))}
@@ -236,7 +230,7 @@ export function ResumeUpload() {
 
             <Button
               type="submit"
-              disabled={isUploading}
+              disabled={isUploading || !form.formState.isValid}
               className="w-full md:w-auto"
             >
               {isUploading ? (
