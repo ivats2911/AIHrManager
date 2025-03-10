@@ -70,13 +70,16 @@ export function ResumeUpload() {
 
     setIsUploading(true);
     try {
-      console.log("Submitting resume data:", data);
+      console.log("Submitting resume data:", {
+        ...data,
+        resumeText: data.resumeText.substring(0, 100) + "..." // Log truncated version
+      });
+
       const res = await fetch("/api/resumes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...data,
-          // Convert jobListingId to number if it exists
           jobListingId: data.jobListingId ? Number(data.jobListingId) : undefined,
           submittedAt: new Date().toISOString(),
         }),
@@ -84,17 +87,28 @@ export function ResumeUpload() {
 
       if (!res.ok) {
         const errorData = await res.json();
+        console.error("Resume upload failed:", errorData);
         throw new Error(errorData.message || "Failed to upload resume");
       }
 
       const result = await res.json();
       console.log("Resume upload response:", result);
 
-      if (result.aiScore === null || result.aiFeedback?.error) {
+      if (!result || result.error) {
+        toast({
+          variant: "destructive",
+          title: "Upload Failed",
+          description: result?.error || "Failed to process resume. Please try again.",
+        });
+        return;
+      }
+
+      if (result.aiFeedback?.error) {
+        console.error("AI analysis error:", result.aiFeedback.error);
         toast({
           variant: "destructive",
           title: "Analysis Failed",
-          description: result.aiFeedback?.error || "The AI analysis could not be completed. Please try again later.",
+          description: result.aiFeedback.error || "The AI analysis could not be completed. Please try again later.",
         });
       } else {
         queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
@@ -220,8 +234,8 @@ export function ResumeUpload() {
               )}
             />
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isUploading}
               className="w-full md:w-auto"
             >

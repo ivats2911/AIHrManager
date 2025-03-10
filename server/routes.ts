@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { analyzeResume, analyzeTeamCompatibility, analyzePerformanceData, analyzeResumeEnhanced } from "./openai"; // Assumed analyzeResumeEnhanced exists
-import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, insertCollaborationSchema, insertJobListingSchema } from "@shared/schema"; // Assumed insertJobListingSchema exists
+import { analyzeResumeWithGemini } from "./gemini";
+import { insertEmployeeSchema, insertLeaveSchema, insertEvaluationSchema, insertResumeSchema, insertJobListingSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { generateAndStoreInsights } from "./notifications";
 
@@ -15,13 +15,6 @@ export async function registerRoutes(app: Express) {
       return res.status(400).json({
         message: "Validation error",
         errors: err.errors
-      });
-    }
-
-    if (err.name === 'OpenAIError') {
-      return res.status(503).json({
-        message: "AI processing service temporarily unavailable",
-        retry: true
       });
     }
 
@@ -194,9 +187,9 @@ export async function registerRoutes(app: Express) {
         Preferred Skills: ${jobListing.preferredSkills?.join(", ") || ""}
       `;
 
-      console.log("Starting AI analysis for resume with job matching");
-      const analysis = await analyzeResumeEnhanced(resumeText, jobDescription);
-      console.log("AI analysis completed");
+      console.log("Starting Gemini analysis for resume with job matching");
+      const analysis = await analyzeResumeWithGemini(resumeText, jobDescription);
+      console.log("Gemini analysis completed");
 
       res.json({
         analysis,
@@ -234,9 +227,9 @@ export async function registerRoutes(app: Express) {
           }
         }
 
-        console.log("Starting AI analysis for resume:", created.id);
-        const analysis = await analyzeResumeEnhanced(resume.resumeText, jobDescription);
-        console.log("AI analysis completed for resume:", created.id);
+        console.log("Starting Gemini analysis for resume:", created.id);
+        const analysis = await analyzeResumeWithGemini(resume.resumeText, jobDescription);
+        console.log("Gemini analysis completed for resume:", created.id);
 
         const updated = await storage.updateResumeAIAnalysis(
           created.id,
@@ -250,7 +243,7 @@ export async function registerRoutes(app: Express) {
 
         res.status(201).json(updated);
       } catch (analysisError) {
-        console.error("AI analysis failed for resume:", created.id, analysisError);
+        console.error("Gemini analysis failed for resume:", created.id, analysisError);
         // Update the resume with error status
         await storage.updateResumeAIAnalysis(
           created.id,
