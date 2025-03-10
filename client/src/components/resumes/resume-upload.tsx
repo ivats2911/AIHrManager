@@ -27,7 +27,6 @@ import { Loader2, Upload } from "lucide-react";
 import type { JobListing } from "@shared/schema";
 import { z } from "zod";
 
-// Extend the schema to add custom validation rules
 const formSchema = insertResumeSchema.extend({
   candidateName: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email").min(1, "Email is required"),
@@ -40,7 +39,6 @@ export function ResumeUpload() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch job listings
   const { data: jobListings = [] } = useQuery<JobListing[]>({
     queryKey: ["/api/job-listings"],
   });
@@ -59,27 +57,34 @@ export function ResumeUpload() {
   });
 
   async function onSubmit(data: any) {
+    console.log("Form submitted with data:", {
+      ...data,
+      resumeText: data.resumeText.substring(0, 100) + "..." // Log truncated version
+    });
+
     setIsUploading(true);
-    console.log("Starting resume submission...");
 
     try {
-      // Prepare request data
       const requestData = {
         ...data,
         jobListingId: data.jobListingId ? Number(data.jobListingId) : undefined,
         submittedAt: new Date().toISOString(),
       };
 
-      console.log("Submitting resume data:", {
+      console.log("Sending request to server:", {
         ...requestData,
-        resumeText: requestData.resumeText.substring(0, 100) + "..." // Log truncated version
+        resumeText: requestData.resumeText.substring(0, 100) + "..."
       });
 
       const res = await fetch("/api/resumes", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(requestData),
       });
+
+      console.log("Server responded with status:", res.status);
 
       const result = await res.json();
       console.log("Server response:", result);
@@ -88,7 +93,6 @@ export function ResumeUpload() {
         throw new Error(result.message || "Failed to upload resume");
       }
 
-      // Handle successful submission
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
       form.reset();
 
@@ -165,14 +169,12 @@ export function ResumeUpload() {
               <FormField
                 control={form.control}
                 name="jobListingId"
-                render={({ field: { onChange, value, ...field } }) => (
+                render={({ field }) => (
                   <FormItem>
                     <FormLabel>Apply for Position <span className="text-red-500">*</span></FormLabel>
                     <Select
-                      onValueChange={(newValue) => {
-                        onChange(newValue ? Number(newValue) : undefined);
-                      }}
-                      value={value?.toString()}
+                      onValueChange={(value) => field.onChange(value ? Number(value) : undefined)}
+                      value={field.value?.toString()}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -218,7 +220,7 @@ export function ResumeUpload() {
             <Button
               type="submit"
               className="w-full md:w-auto transition-all hover:shadow-lg"
-              disabled={isUploading}
+              disabled={isUploading || !form.formState.isValid}
             >
               {isUploading ? (
                 <>

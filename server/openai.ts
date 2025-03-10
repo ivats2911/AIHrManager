@@ -2,87 +2,6 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export async function analyzeTeamCompatibility(
-  employees: Array<{
-    id: number;
-    firstName: string;
-    lastName: string;
-    role: string;
-    department: string;
-    skills: string[];
-  }>,
-  projectRequirements: string
-): Promise<{
-  suggestedTeams: Array<{
-    members: number[];
-    compatibility: number;
-    strengths: string[];
-    challenges: string[];
-    recommendations: string;
-  }>;
-}> {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert team formation analyst. Analyze the provided employees and project requirements to suggest optimal team compositions. Provide a JSON response with exactly this format:
-{
-  "suggestedTeams": [
-    {
-      "members": [<array of employee IDs>],
-      "compatibility": <number between 0-100>,
-      "strengths": ["strength1", "strength2", ...],
-      "challenges": ["challenge1", "challenge2", ...],
-      "recommendations": "team optimization recommendation"
-    }
-  ]
-}
-Do not include any other text before or after the JSON.`,
-        },
-        {
-          role: "user",
-          content: JSON.stringify({
-            employees,
-            projectRequirements,
-          }),
-        },
-      ],
-      temperature: 0.7,
-      response_format: { type: "json_object" },
-    });
-
-    const content = response.choices[0].message.content;
-    if (!content) {
-      throw new Error("No content received from OpenAI");
-    }
-
-    const result = JSON.parse(content);
-
-    // Validate the response structure
-    if (
-      !Array.isArray(result.suggestedTeams) ||
-      !result.suggestedTeams.every(
-        (team: any) =>
-          Array.isArray(team.members) &&
-          typeof team.compatibility === "number" &&
-          Array.isArray(team.strengths) &&
-          Array.isArray(team.challenges) &&
-          typeof team.recommendations === "string"
-      )
-    ) {
-      throw new Error("Invalid response structure from AI");
-    }
-
-    return result;
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    console.error("Team analysis failed:", errorMessage);
-    throw new Error("Failed to analyze team compatibility: " + errorMessage);
-  }
-}
-
 export async function analyzePerformanceData(
   evaluations: Array<{
     employeeId: number;
@@ -121,7 +40,7 @@ export async function analyzePerformanceData(
       messages: [
         {
           role: "system",
-          content: `You are an expert HR analyst. Analyze the employee's performance evaluations and provide insights. Return a JSON response with exactly this format:
+          content: `You are an expert HR analyst. Analyze the employee's performance evaluations and provide insights. Respond with JSON in this format:
 {
   "trends": {
     "overall": "summary of performance trend",
@@ -138,8 +57,7 @@ export async function analyzePerformanceData(
     "riskFactors": ["risk 1", "risk 2"],
     "opportunities": ["opportunity 1", "opportunity 2"]
   }
-}
-Do not include any other text before or after the JSON.`,
+}`
         },
         {
           role: "user",
@@ -149,7 +67,6 @@ Do not include any other text before or after the JSON.`,
           }),
         },
       ],
-      temperature: 0.7,
       response_format: { type: "json_object" },
     });
 
@@ -158,25 +75,71 @@ Do not include any other text before or after the JSON.`,
       throw new Error("No content received from OpenAI");
     }
 
-    const result = JSON.parse(content);
+    return JSON.parse(content);
+  } catch (error) {
+    console.error("Performance analysis failed:", error);
+    throw new Error(`Failed to analyze performance data: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
 
-    // Validate the response structure
-    if (
-      !result.trends ||
-      !result.recommendations ||
-      !result.predictiveInsights ||
-      !Array.isArray(result.trends.strengths) ||
-      !Array.isArray(result.recommendations.personal) ||
-      !Array.isArray(result.predictiveInsights.opportunities)
-    ) {
-      throw new Error("Invalid response structure from AI");
+export async function analyzeTeamCompatibility(
+  employees: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    role: string;
+    department: string;
+    skills: string[];
+  }>,
+  projectRequirements: string
+): Promise<{
+  suggestedTeams: Array<{
+    members: number[];
+    compatibility: number;
+    strengths: string[];
+    challenges: string[];
+    recommendations: string;
+  }>;
+}> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [
+        {
+          role: "system",
+          content: `Analyze the team composition for the project and suggest optimal teams. Respond with JSON in this format:
+{
+  "suggestedTeams": [
+    {
+      "members": [1, 2, 3],
+      "compatibility": 85,
+      "strengths": ["diverse skills", "complementary experience"],
+      "challenges": ["different time zones"],
+      "recommendations": "detailed recommendation"
+    }
+  ]
+}`
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            employees,
+            projectRequirements,
+          }),
+        },
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("No content received from OpenAI");
     }
 
-    return result;
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-    console.error("Performance analysis failed:", errorMessage);
-    throw new Error("Failed to analyze performance data: " + errorMessage);
+    return JSON.parse(content);
+  } catch (error) {
+    console.error("Team analysis failed:", error);
+    throw new Error(`Failed to analyze team compatibility: ${error instanceof Error ? error.message : "Unknown error"}`);
   }
 }
 
