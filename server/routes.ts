@@ -207,7 +207,10 @@ export async function registerRoutes(app: Express) {
   // Update the resume submission endpoint
   app.post("/api/resumes", async (req, res) => {
     try {
-      console.log("Starting resume submission process");
+      console.log("Starting resume submission process", {
+        body: { ...req.body, resumeText: req.body.resumeText?.substring(0, 100) + "..." }
+      });
+
       const resume = insertResumeSchema.parse(req.body);
 
       console.log("Creating resume entry...");

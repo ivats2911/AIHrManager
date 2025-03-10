@@ -56,27 +56,33 @@ export function ResumeUpload() {
     },
   });
 
-  async function onSubmit(data: any) {
-    console.log("Form submitted with data:", {
-      ...data,
-      resumeText: data.resumeText.substring(0, 100) + "..." // Log truncated version
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log("Form validation state:", {
+      isValid: form.formState.isValid,
+      errors: form.formState.errors,
+      values
     });
+
+    if (!form.formState.isValid) {
+      console.log("Form validation failed:", form.formState.errors);
+      return;
+    }
 
     setIsUploading(true);
 
     try {
       const requestData = {
-        ...data,
-        jobListingId: data.jobListingId ? Number(data.jobListingId) : undefined,
+        ...values,
+        jobListingId: values.jobListingId ? Number(values.jobListingId) : undefined,
         submittedAt: new Date().toISOString(),
       };
 
-      console.log("Sending request to server:", {
+      console.log("Sending resume data to server:", {
         ...requestData,
         resumeText: requestData.resumeText.substring(0, 100) + "..."
       });
 
-      const res = await fetch("/api/resumes", {
+      const response = await fetch("/api/resumes", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -84,12 +90,12 @@ export function ResumeUpload() {
         body: JSON.stringify(requestData),
       });
 
-      console.log("Server responded with status:", res.status);
+      console.log("Server response status:", response.status);
 
-      const result = await res.json();
-      console.log("Server response:", result);
+      const result = await response.json();
+      console.log("Server response data:", result);
 
-      if (!res.ok) {
+      if (!response.ok) {
         throw new Error(result.message || "Failed to upload resume");
       }
 
@@ -101,7 +107,7 @@ export function ResumeUpload() {
         description: "Resume uploaded successfully and is being analyzed",
       });
     } catch (error) {
-      console.error("Resume submission error:", error);
+      console.error("Resume submission failed:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -111,6 +117,12 @@ export function ResumeUpload() {
       setIsUploading(false);
     }
   }
+
+  console.log("Current form state:", {
+    isValid: form.formState.isValid,
+    isDirty: form.formState.isDirty,
+    errors: form.formState.errors
+  });
 
   return (
     <Card className="border-2 border-primary/20">
@@ -220,7 +232,7 @@ export function ResumeUpload() {
             <Button
               type="submit"
               className="w-full md:w-auto transition-all hover:shadow-lg"
-              disabled={isUploading || !form.formState.isValid}
+              disabled={isUploading}
             >
               {isUploading ? (
                 <>
