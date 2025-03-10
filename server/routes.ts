@@ -208,23 +208,31 @@ export async function registerRoutes(app: Express) {
   app.post("/api/resumes", async (req, res) => {
     try {
       console.log("Starting resume submission process", {
-        body: { ...req.body, resumeText: req.body.resumeText?.substring(0, 100) + "..." }
+        body: { 
+          ...req.body, 
+          resumeText: req.body.resumeText?.substring(0, 100) + "...",
+          hasJobListingId: !!req.body.jobListingId,
+          hasPosition: !!req.body.position
+        }
       });
 
       // Validate the request body
+      console.log("Validating request body...");
       const resume = insertResumeSchema.parse(req.body);
 
       // Create the initial resume entry
       console.log("Creating resume entry...");
       const created = await storage.createResume(resume);
-      console.log("Resume created:", created.id);
+      console.log("Resume created with ID:", created.id);
 
       try {
         // Get job listing if provided
         let jobDescription = "";
         if (resume.jobListingId) {
+          console.log("Fetching job listing details for ID:", resume.jobListingId);
           const jobListing = await storage.getJobListing(resume.jobListingId);
           if (jobListing) {
+            console.log("Found job listing:", jobListing.title);
             jobDescription = `
               Position: ${jobListing.title}
               Department: ${jobListing.department}
@@ -232,11 +240,14 @@ export async function registerRoutes(app: Express) {
               Requirements: ${jobListing.requirements.join(", ")}
               Preferred Skills: ${jobListing.preferredSkills?.join(", ") || ""}
             `;
+          } else {
+            console.log("Job listing not found for ID:", resume.jobListingId);
           }
         }
 
         // Use the position as fallback if no job listing found
         if (!jobDescription) {
+          console.log("Using position as fallback for job description");
           jobDescription = resume.position;
         }
 
@@ -245,6 +256,7 @@ export async function registerRoutes(app: Express) {
         console.log("OpenAI analysis completed for resume:", created.id);
 
         // Update resume with AI analysis results
+        console.log("Updating resume with analysis results...");
         const updated = await storage.updateResumeAIAnalysis(
           created.id,
           analysis.score,

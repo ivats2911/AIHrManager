@@ -4,6 +4,8 @@ if (!process.env.OPENAI_API_KEY_NEW) {
   throw new Error("OPENAI_API_KEY_NEW is required but not found in environment variables");
 }
 
+// Log that we're initializing OpenAI client (but never log the actual key)
+console.log("Initializing OpenAI client with new API key...");
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY_NEW });
 
 export async function analyzePerformanceData(
@@ -276,19 +278,19 @@ Provide a JSON response with exactly this format:
       throw new Error("No content received from OpenAI");
     }
 
+    console.log("Attempting to parse OpenAI response...");
     const result = JSON.parse(content);
-    console.log("Parsed OpenAI response:", {
+    console.log("Successfully parsed OpenAI response:", {
       score: result.score,
       matchScore: result.matchScore,
-      feedback: {
-        ...result.feedback,
-        strengths: result.feedback.strengths.length,
-        weaknesses: result.feedback.weaknesses.length,
-        skillsIdentified: result.feedback.skillsIdentified.length
+      feedbackLength: {
+        strengths: result.feedback?.strengths?.length || 0,
+        weaknesses: result.feedback?.weaknesses?.length || 0,
+        skillsIdentified: result.feedback?.skillsIdentified?.length || 0
       },
-      suggestedQuestions: result.suggestedQuestions.length,
-      experience: result.experience.length,
-      education: result.education.length
+      suggestedQuestionsCount: result.suggestedQuestions?.length || 0,
+      experienceCount: result.experience?.length || 0,
+      educationCount: result.education?.length || 0
     });
 
     // Validate the response structure
@@ -302,8 +304,8 @@ Provide a JSON response with exactly this format:
       !Array.isArray(result.experience) ||
       !Array.isArray(result.education)
     ) {
-      console.error("Invalid response structure:", result);
-      throw new Error("Invalid response structure from AI");
+      console.error("Invalid response structure from OpenAI:", result);
+      throw new Error("Invalid response structure from OpenAI");
     }
 
     // Ensure scores are within bounds
