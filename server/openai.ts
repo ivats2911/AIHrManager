@@ -73,7 +73,6 @@ export async function analyzePerformanceData(
           }),
         },
       ],
-      //response_format: { type: "json_object" }, //Removed as per instruction
     });
 
     const content = response.choices[0].message.content;
@@ -134,7 +133,6 @@ export async function analyzeTeamCompatibility(
           }),
         },
       ],
-      //response_format: { type: "json_object" }, //Removed as per instruction
     });
 
     const content = response.choices[0].message.content;
@@ -179,7 +177,6 @@ Do not include any other text before or after the JSON.`
         },
       ],
       temperature: 0.7,
-      //response_format: { type: "json_object" }, //Removed as per instruction
     });
 
     console.log("Received response from OpenAI");
@@ -249,7 +246,7 @@ export async function analyzeResumeEnhanced(
 4. Technical expertise
 5. Potential interview questions
 
-Return your analysis in this exact format:
+Return a JSON response with exactly this format:
 {
   "score": <overall score 1-100>,
   "matchScore": <job match score 1-100>,
