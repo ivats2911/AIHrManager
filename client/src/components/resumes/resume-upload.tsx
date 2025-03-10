@@ -56,53 +56,48 @@ export function ResumeUpload() {
       jobListingId: undefined,
       submittedAt: new Date(),
     },
-    mode: "onChange" // Enable real-time validation
   });
 
   async function onSubmit(data: any) {
-    if (!data.resumeText.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Resume content cannot be empty",
-      });
-      return;
-    }
-
     setIsUploading(true);
+    console.log("Starting resume submission...");
+
     try {
-      console.log("Submitting resume data:", {
+      // Prepare request data
+      const requestData = {
         ...data,
-        resumeText: data.resumeText.substring(0, 100) + "..." // Log truncated version
+        jobListingId: data.jobListingId ? Number(data.jobListingId) : undefined,
+        submittedAt: new Date().toISOString(),
+      };
+
+      console.log("Submitting resume data:", {
+        ...requestData,
+        resumeText: requestData.resumeText.substring(0, 100) + "..." // Log truncated version
       });
 
       const res = await fetch("/api/resumes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...data,
-          jobListingId: data.jobListingId ? Number(data.jobListingId) : undefined,
-          submittedAt: new Date().toISOString(),
-        }),
+        body: JSON.stringify(requestData),
       });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        console.error("Resume upload failed:", errorData);
-        throw new Error(errorData.message || "Failed to upload resume");
-      }
 
       const result = await res.json();
-      console.log("Resume upload response:", result);
+      console.log("Server response:", result);
 
+      if (!res.ok) {
+        throw new Error(result.message || "Failed to upload resume");
+      }
+
+      // Handle successful submission
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
       form.reset();
+
       toast({
-        title: "Success",
-        description: "Resume uploaded and analyzed successfully",
+        title: "Success!",
+        description: "Resume uploaded successfully and is being analyzed",
       });
     } catch (error) {
-      console.error("Resume upload error:", error);
+      console.error("Resume submission error:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -223,7 +218,7 @@ export function ResumeUpload() {
             <Button
               type="submit"
               className="w-full md:w-auto transition-all hover:shadow-lg"
-              disabled={isUploading || !form.formState.isDirty}
+              disabled={isUploading}
             >
               {isUploading ? (
                 <>

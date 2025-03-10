@@ -204,11 +204,13 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Enhanced Resume Submission Route
+  // Update the resume submission endpoint
   app.post("/api/resumes", async (req, res) => {
     try {
       console.log("Starting resume submission process");
       const resume = insertResumeSchema.parse(req.body);
+
+      console.log("Creating resume entry...");
       const created = await storage.createResume(resume);
       console.log("Resume created:", created.id);
 
@@ -253,18 +255,16 @@ export async function registerRoutes(app: Express) {
       } catch (analysisError) {
         console.error("Gemini analysis failed for resume:", created.id, analysisError);
 
-        // Return partial success with error status
-        const errorResponse = {
+        // Return the created resume even if analysis fails
+        res.status(201).json({
           ...created,
-          aiScore: 0,
+          aiScore: null,
           aiFeedback: {
-            error: "Analysis failed, please try again later",
+            error: "Analysis is being processed, please check back later",
             retryable: true
           },
-          status: "error"
-        };
-
-        res.status(201).json(errorResponse);
+          status: "processing"
+        });
       }
     } catch (error) {
       console.error("Resume creation failed:", error);
