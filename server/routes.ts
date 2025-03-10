@@ -207,6 +207,7 @@ export async function registerRoutes(app: Express) {
   // Enhanced Resume Submission Route
   app.post("/api/resumes", async (req, res) => {
     try {
+      console.log("Starting resume submission process");
       const resume = insertResumeSchema.parse(req.body);
       const created = await storage.createResume(resume);
       console.log("Resume created:", created.id);
@@ -231,39 +232,39 @@ export async function registerRoutes(app: Express) {
         const analysis = await analyzeResumeWithGemini(resume.resumeText, jobDescription);
         console.log("Gemini analysis completed for resume:", created.id);
 
+        // Update resume with AI analysis results
         const updated = await storage.updateResumeAIAnalysis(
           created.id,
           analysis.score,
-          analysis.feedback,
+          {
+            strengths: analysis.feedback.strengths,
+            weaknesses: analysis.feedback.weaknesses,
+            skillsIdentified: analysis.feedback.skillsIdentified,
+            recommendation: analysis.feedback.recommendation
+          },
           analysis.experience,
           analysis.education,
           analysis.feedback.skillsIdentified,
           analysis.suggestedQuestions
         );
 
+        console.log("Resume updated with analysis:", updated.id);
         res.status(201).json(updated);
       } catch (analysisError) {
         console.error("Gemini analysis failed for resume:", created.id, analysisError);
-        // Update the resume with error status
-        await storage.updateResumeAIAnalysis(
-          created.id,
-          0,
-          { error: "Analysis failed, please try again later" },
-          [],
-          [],
-          [],
-          []
-        );
 
-        res.status(201).json({
+        // Return partial success with error status
+        const errorResponse = {
           ...created,
-          aiScore: null,
+          aiScore: 0,
           aiFeedback: {
             error: "Analysis failed, please try again later",
             retryable: true
           },
           status: "error"
-        });
+        };
+
+        res.status(201).json(errorResponse);
       }
     } catch (error) {
       console.error("Resume creation failed:", error);
@@ -273,7 +274,10 @@ export async function registerRoutes(app: Express) {
           errors: error.errors
         });
       }
-      res.status(500).json({ message: "Failed to process resume" });
+      res.status(500).json({ 
+        message: "Failed to process resume",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

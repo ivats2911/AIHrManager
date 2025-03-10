@@ -8,7 +8,7 @@ export async function analyzeResumeWithGemini(resumeText: string, jobDescription
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
 
     const prompt = `Analyze this resume for the specified job position and provide a detailed evaluation.
-    
+
 Job Description:
 ${jobDescription}
 
@@ -63,7 +63,7 @@ Only respond with the JSON, no other text.`;
     parsedResult.score = Math.min(100, Math.max(1, parsedResult.score));
     parsedResult.matchScore = Math.min(100, Math.max(1, parsedResult.matchScore));
 
-    console.log("Successfully analyzed resume with Gemini");
+    console.log("Successfully analyzed resume with Gemini"); //Corrected log message
     return parsedResult;
   } catch (error: any) {
     console.error("Resume analysis failed:", error);
