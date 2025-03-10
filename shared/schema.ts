@@ -40,6 +40,7 @@ export const resumes = pgTable("resumes", {
   phone: text("phone"),
   position: text("position").notNull(),
   resumeText: text("resume_text").notNull(),
+  jobDescriptionUrl: text("job_description_url"),
   parsedSkills: jsonb("parsed_skills").$type<string[]>(),
   education: jsonb("education").$type<{ degree: string; institution: string; year: number }[]>(),
   experience: jsonb("experience").$type<{ title: string; company: string; years: number }[]>(),
@@ -121,8 +122,17 @@ export const insertResumeSchema = createInsertSchema(resumes).omit({
   suggestedQuestions: true,
   status: true
 }).extend({
-  submittedAt: z.coerce.date()
-});
+  jobDescriptionUrl: z.string().url("Please enter a valid URL").optional(),
+  submittedAt: z.coerce.date(),
+  position: z.string().min(1, "Position is required when not applying to a listed job").optional(),
+  jobListingId: z.number().optional()
+}).refine(
+  (data) => data.position || data.jobListingId,
+  {
+    message: "Either position or job listing must be provided",
+    path: ["position"]
+  }
+);
 
 export const insertJobListingSchema = createInsertSchema(jobListings).omit({ 
   id: true,

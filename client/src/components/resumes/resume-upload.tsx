@@ -15,22 +15,31 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Loader2, Upload } from "lucide-react";
 import type { JobListing } from "@shared/schema";
 import { z } from "zod";
 
-const formSchema = insertResumeSchema.extend({
-  candidateName: z.string().min(1, "Name is required"),
-  email: z.string().email("Invalid email").min(1, "Email is required"),
-  resumeText: z.string().min(50, "Resume content must be at least 50 characters"),
-  position: z.string().min(1, "Position is required"),
-});
+const formSchema = insertResumeSchema;
 
 export function ResumeUpload() {
   const [isUploading, setIsUploading] = useState(false);
+  const [applicationType, setApplicationType] = useState<"job-board" | "external">("job-board");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch job listings for the dropdown
+  const { data: jobListings = [] } = useQuery<JobListing[]>({
+    queryKey: ["/api/job-listings"],
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -41,6 +50,7 @@ export function ResumeUpload() {
       position: "",
       resumeText: "",
       jobListingId: undefined,
+      jobDescriptionUrl: "",
       submittedAt: new Date(),
     },
   });
@@ -154,21 +164,96 @@ export function ResumeUpload() {
                   </FormItem>
                 )}
               />
+            </div>
 
+            <FormItem className="space-y-4">
+              <FormLabel>Application Type</FormLabel>
+              <RadioGroup
+                defaultValue="job-board"
+                onValueChange={(value) => setApplicationType(value as "job-board" | "external")}
+                className="flex flex-col space-y-1"
+              >
+                <FormItem className="flex items-center space-x-3 space-y-0">
+                  <FormControl>
+                    <RadioGroupItem value="job-board" />
+                  </FormControl>
+                  <FormLabel className="font-normal">
+                    Apply for Listed Position
+                  </FormLabel>
+                </FormItem>
+                <FormItem className="flex items-center space-x-3 space-y-0">
+                  <FormControl>
+                    <RadioGroupItem value="external" />
+                  </FormControl>
+                  <FormLabel className="font-normal">
+                    External Job Description
+                  </FormLabel>
+                </FormItem>
+              </RadioGroup>
+            </FormItem>
+
+            {applicationType === "job-board" ? (
               <FormField
                 control={form.control}
-                name="position"
+                name="jobListingId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Position <span className="text-red-500">*</span></FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Software Engineer" />
-                    </FormControl>
+                    <FormLabel>Select Position <span className="text-red-500">*</span></FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      value={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a position" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {jobListings.map((job) => (
+                          <SelectItem
+                            key={job.id}
+                            value={job.id.toString()}
+                          >
+                            {job.title} - {job.department}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="position"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Position Title <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Software Engineer" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="jobDescriptionUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Description URL <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input {...field} type="url" placeholder="https://example.com/job-posting" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             <FormField
               control={form.control}

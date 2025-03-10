@@ -212,6 +212,7 @@ export async function registerRoutes(app: Express) {
           ...req.body, 
           resumeText: req.body.resumeText?.substring(0, 100) + "...",
           hasJobListingId: !!req.body.jobListingId,
+          hasJobDescriptionUrl: !!req.body.jobDescriptionUrl,
           hasPosition: !!req.body.position
         }
       });
@@ -226,8 +227,9 @@ export async function registerRoutes(app: Express) {
       console.log("Resume created with ID:", created.id);
 
       try {
-        // Get job listing if provided
+        // Get job description either from job listing or external URL
         let jobDescription = "";
+
         if (resume.jobListingId) {
           console.log("Fetching job listing details for ID:", resume.jobListingId);
           const jobListing = await storage.getJobListing(resume.jobListingId);
@@ -243,10 +245,27 @@ export async function registerRoutes(app: Express) {
           } else {
             console.log("Job listing not found for ID:", resume.jobListingId);
           }
+        } else if (resume.jobDescriptionUrl) {
+          console.log("Fetching job description from URL:", resume.jobDescriptionUrl);
+          try {
+            const response = await fetch(resume.jobDescriptionUrl);
+            if (response.ok) {
+              const html = await response.text();
+              // Extract text content from HTML (basic implementation)
+              jobDescription = html.replace(/<[^>]*>/g, ' ')
+                                .replace(/\s+/g, ' ')
+                                .trim();
+              console.log("Successfully fetched job description from URL");
+            } else {
+              console.log("Failed to fetch job description from URL:", response.status);
+            }
+          } catch (error) {
+            console.error("Error fetching job description URL:", error);
+          }
         }
 
-        // Use the position as fallback if no job listing found
-        if (!jobDescription) {
+        // Use position as fallback if no job description found
+        if (!jobDescription && resume.position) {
           console.log("Using position as fallback for job description");
           jobDescription = resume.position;
         }
