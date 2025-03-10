@@ -274,6 +274,7 @@ Provide a JSON response with exactly this format:
     }
 
     const result = JSON.parse(content);
+    console.log("Parsed OpenAI response:", result);
 
     // Validate the response structure
     if (
