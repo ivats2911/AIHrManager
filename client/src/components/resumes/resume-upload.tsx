@@ -56,6 +56,7 @@ export function ResumeUpload() {
       jobListingId: undefined,
       submittedAt: new Date(),
     },
+    mode: "onChange" // Enable real-time validation
   });
 
   async function onSubmit(data: any) {
@@ -93,15 +94,6 @@ export function ResumeUpload() {
 
       const result = await res.json();
       console.log("Resume upload response:", result);
-
-      if (!result || result.error) {
-        toast({
-          variant: "destructive",
-          title: "Upload Failed",
-          description: result?.error || "Failed to process resume. Please try again.",
-        });
-        return;
-      }
 
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
       form.reset();
@@ -230,8 +222,8 @@ export function ResumeUpload() {
 
             <Button
               type="submit"
-              disabled={isUploading || !form.formState.isValid}
-              className="w-full md:w-auto"
+              className="w-full md:w-auto transition-all hover:shadow-lg"
+              disabled={isUploading || !form.formState.isDirty}
             >
               {isUploading ? (
                 <>
