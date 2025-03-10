@@ -211,15 +211,17 @@ export async function registerRoutes(app: Express) {
         body: { ...req.body, resumeText: req.body.resumeText?.substring(0, 100) + "..." }
       });
 
+      // Validate the request body
       const resume = insertResumeSchema.parse(req.body);
 
+      // Create the initial resume entry
       console.log("Creating resume entry...");
       const created = await storage.createResume(resume);
       console.log("Resume created:", created.id);
 
       try {
         // Get job listing if provided
-        let jobDescription = resume.position; // Use position as fallback
+        let jobDescription = "";
         if (resume.jobListingId) {
           const jobListing = await storage.getJobListing(resume.jobListingId);
           if (jobListing) {
@@ -231,6 +233,11 @@ export async function registerRoutes(app: Express) {
               Preferred Skills: ${jobListing.preferredSkills?.join(", ") || ""}
             `;
           }
+        }
+
+        // Use the position as fallback if no job listing found
+        if (!jobDescription) {
+          jobDescription = resume.position;
         }
 
         console.log("Starting Gemini analysis for resume:", created.id);

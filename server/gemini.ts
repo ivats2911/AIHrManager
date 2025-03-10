@@ -1,6 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+if (!process.env.GEMINI_API_KEY) {
+  throw new Error("GEMINI_API_KEY is required but not found in environment variables");
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function analyzeResumeWithGemini(resumeText: string, jobDescription: string) {
   try {
@@ -63,7 +67,7 @@ Only respond with the JSON, no other text.`;
     parsedResult.score = Math.min(100, Math.max(1, parsedResult.score));
     parsedResult.matchScore = Math.min(100, Math.max(1, parsedResult.matchScore));
 
-    console.log("Successfully analyzed resume with Gemini"); //Corrected log message
+    console.log("Successfully analyzed resume with Gemini");
     return parsedResult;
   } catch (error: any) {
     console.error("Resume analysis failed:", error);

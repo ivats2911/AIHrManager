@@ -43,7 +43,7 @@ export function ResumeUpload() {
     queryKey: ["/api/job-listings"],
   });
 
-  const form = useForm({
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       candidateName: "",
@@ -57,14 +57,14 @@ export function ResumeUpload() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log("Form validation state:", {
-      isValid: form.formState.isValid,
-      errors: form.formState.errors,
-      values
-    });
-
     if (!form.formState.isValid) {
-      console.log("Form validation failed:", form.formState.errors);
+      Object.entries(form.formState.errors).forEach(([key, value]) => {
+        toast({
+          variant: "destructive",
+          title: "Validation Error",
+          description: value.message,
+        });
+      });
       return;
     }
 
@@ -77,7 +77,7 @@ export function ResumeUpload() {
         submittedAt: new Date().toISOString(),
       };
 
-      console.log("Sending resume data to server:", {
+      console.log("Sending resume data:", {
         ...requestData,
         resumeText: requestData.resumeText.substring(0, 100) + "..."
       });
@@ -92,12 +92,13 @@ export function ResumeUpload() {
 
       console.log("Server response status:", response.status);
 
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to upload resume");
+      }
+
       const result = await response.json();
       console.log("Server response data:", result);
-
-      if (!response.ok) {
-        throw new Error(result.message || "Failed to upload resume");
-      }
 
       queryClient.invalidateQueries({ queryKey: ["/api/resumes"] });
       form.reset();
@@ -118,12 +119,6 @@ export function ResumeUpload() {
     }
   }
 
-  console.log("Current form state:", {
-    isValid: form.formState.isValid,
-    isDirty: form.formState.isDirty,
-    errors: form.formState.errors
-  });
-
   return (
     <Card className="border-2 border-primary/20">
       <CardHeader>
@@ -143,7 +138,7 @@ export function ResumeUpload() {
                   <FormItem>
                     <FormLabel>Candidate Name <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="John Doe" className="bg-background" />
+                      <Input {...field} placeholder="John Doe" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -157,13 +152,12 @@ export function ResumeUpload() {
                   <FormItem>
                     <FormLabel>Email <span className="text-red-500">*</span></FormLabel>
                     <FormControl>
-                      <Input {...field} type="email" placeholder="john@example.com" className="bg-background" />
+                      <Input {...field} type="email" placeholder="john@example.com" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="phone"
@@ -171,7 +165,7 @@ export function ResumeUpload() {
                   <FormItem>
                     <FormLabel>Phone (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="+1 (555) 123-4567" className="bg-background" />
+                      <Input {...field} placeholder="+1 (555) 123-4567" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -221,7 +215,7 @@ export function ResumeUpload() {
                       {...field}
                       rows={10}
                       placeholder="Paste the resume content here..."
-                      className="bg-background resize-none"
+                      className="resize-none"
                     />
                   </FormControl>
                   <FormMessage />
