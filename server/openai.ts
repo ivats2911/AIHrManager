@@ -231,7 +231,10 @@ export async function analyzeResumeEnhanced(
   education: Array<{ degree: string; institution: string; year: number }>;
 }> {
   try {
-    console.log("Starting enhanced resume analysis with OpenAI...");
+    console.log("Starting resume analysis with OpenAI...");
+    console.log("Job Description:", jobDescription.substring(0, 100) + "...");
+    console.log("Resume Text:", resumeText.substring(0, 100) + "...");
+
     const response = await openai.chat.completions.create({
       model: "gpt-4",
       messages: [
@@ -274,7 +277,19 @@ Provide a JSON response with exactly this format:
     }
 
     const result = JSON.parse(content);
-    console.log("Parsed OpenAI response:", result);
+    console.log("Parsed OpenAI response:", {
+      score: result.score,
+      matchScore: result.matchScore,
+      feedback: {
+        ...result.feedback,
+        strengths: result.feedback.strengths.length,
+        weaknesses: result.feedback.weaknesses.length,
+        skillsIdentified: result.feedback.skillsIdentified.length
+      },
+      suggestedQuestions: result.suggestedQuestions.length,
+      experience: result.experience.length,
+      education: result.education.length
+    });
 
     // Validate the response structure
     if (
